@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>巧克力服铁路线路图 Chocolate Server Rail Transit System Plan</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#ff9800">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="巧克力服铁路图">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { box-sizing: border-box; font-family: system-ui, 'Segoe UI', 'Microsoft YaHei', sans-serif; }
+        body { margin: 0; background: #f0f2f5; padding: 20px; overflow: hidden; height: 100vh; }
+        .container { max-width: 1400px; margin: 0 auto; background: white; border-radius: 24px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); display: flex; flex-direction: column; height: calc(100vh - 40px); }
+        header { background: #1e3c72; color: white; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border-radius: 24px 24px 0 0; }
+        h1 { margin: 0; font-size: 1.6rem; }
+        .main { display: flex; flex: 1; min-height: 0; }
+        .map-panel { flex: 3; background: #e9ecef; padding: 20px; border-right: 1px solid #ddd; display: flex; flex-direction: column; overflow: hidden; }
+        .sidebar { flex: 1.2; min-width: 280px; padding: 20px; background: #fafbfc; overflow-y: auto; }
+        .svg-container { background: #fefefe; border-radius: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden; flex: 1; position: relative; cursor: grab; touch-action: none; }
+        .svg-container:active { cursor: grabbing; }
+        svg { width: 100%; height: 100%; display: block; }
+        .tooltip { position: fixed; background: rgba(0,0,0,0.85); color: white; padding: 8px 14px; border-radius: 12px; font-size: 13px; pointer-events: none; z-index: 1000; white-space: nowrap; backdrop-filter: blur(4px); }
+        .plan-form, .admin-form { background: white; border-radius: 20px; padding: 16px; margin-bottom: 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+        .plan-form input, .admin-form input, .admin-form select { width: 100%; padding: 8px 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 20px; }
+        .result { background: #e3f2fd; border-radius: 16px; padding: 12px; margin-top: 12px; font-size: 14px; }
+        .item-list { max-height: 200px; overflow-y: auto; margin-bottom: 12px; border: 1px solid #e0e0e0; border-radius: 12px; padding: 4px; }
+        .station-item, .line-item, .operator-item, .transfer-item { background: white; border-radius: 8px; padding: 6px 10px; margin-bottom: 6px; border: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center; }
+        .small-btn { background: #e0e0e0; padding: 2px 8px; font-size: 11px; margin-left: 6px; }
+        .danger { background: #f44336; color: white; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 2000; }
+        .modal-content { background: white; padding: 24px; border-radius: 28px; width: 500px; max-width: 90%; max-height: 80vh; overflow-y: auto; }
+        .modal-content input, .modal-content select, .modal-content textarea { width: 100%; margin: 8px 0; padding: 8px; }
+        .close { float: right; cursor: pointer; font-size: 24px; }
+        .modal-footer { margin-top: 16px; text-align: right; }
+        .section-title { font-weight: bold; margin: 12px 0 8px; color: #1e3c72; }
+        .color-preview { width: 16px; height: 16px; display: inline-block; margin-right: 6px; border-radius: 2px; }
+        .map-controls { margin-top: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .dimension-bar { background: #e0e7ff; padding: 8px 12px; border-radius: 40px; display: inline-flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+        .dimension-bar select { padding: 4px 8px; border-radius: 20px; border: 1px solid #ccc; }
+        .aux-controls { background: #f8f9fa; border-radius: 12px; padding: 8px 12px; margin-bottom: 12px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+        .aux-controls label { margin-left: 8px; margin-right: 12px; }
+        .coord-input { display: inline-flex; gap: 8px; align-items: center; }
+        .coord-input input { width: 80px; padding: 4px 8px; border-radius: 16px; border: 1px solid #ccc; }
+        #coordDisplay { background: #e9ecef; border-radius: 20px; padding: 4px 12px; font-size: 12px; }
+        .modal-content label { display: block; margin-bottom: 8px; }
+        .modal-content label input[type="checkbox"] { display: inline-block; width: auto; margin-right: 8px; vertical-align: middle; }
+        .modal-content label span { vertical-align: middle; }
+        .breakpoints-section { border: 1px solid #ddd; border-radius: 12px; padding: 8px; margin: 8px 0; background: #fafafa; }
+        .segment-title { font-weight: bold; margin: 8px 0 4px; font-size: 13px; color: #1e3c72; }
+        .bp-list { margin: 4px 0 8px 20px; }
+        .bp-item { display: flex; gap: 8px; align-items: center; margin: 6px 0; }
+        .bp-item input { width: 70px; padding: 4px; }
+        textarea { font-family: monospace; font-size: 12px; }
+
+        @media (max-width: 768px) {
+            .main { flex-direction: column; }
+            .map-panel { border-right: none; border-bottom: 1px solid #ddd; min-width: auto; height: 50vh; padding: 12px; }
+            .sidebar { min-width: auto; padding: 12px; max-height: 50vh; overflow-y: auto; }
+            .dimension-bar { flex-wrap: wrap; gap: 6px; }
+            .aux-controls { flex-wrap: wrap; gap: 8px; align-items: stretch; }
+            .coord-input { flex-wrap: wrap; width: 100%; }
+            .coord-input input { flex: 1; min-width: 70px; }
+            .admin-form button { font-size: 12px; padding: 4px 8px; }
+            .modal-content { width: 95%; max-width: 95%; padding: 16px; }
+            .station-item, .line-item, .operator-item, .transfer-item { font-size: 12px; }
+            .tooltip { font-size: 11px; white-space: normal; max-width: 200px; }
+        }
+        #zoomInBtn, #zoomOutBtn, #resetViewBtn {
+            background: white; border: 1px solid #ccc; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            cursor: pointer; user-select: none; touch-action: manipulation;
+        }
+        #zoomInBtn:active, #zoomOutBtn:active, #resetViewBtn:active {
+            background: #f0f0f0; transform: scale(0.96);
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>巧克力服铁路线路图 Chocolate Server Rail Transit System Plan</h1>
+        <div style="font-size: 14px;">💡 所有人都可自由编辑，无需审核。为了延续这个规则，当你在编辑时，我们请求你不要随意修改<br>
+        ℹ️ 由于服务器铁路众多，我们希望你能够添加你所知道的铁路！</div>
+    </header>
+    <div class="main">
+        <div class="map-panel">
+            <div class="dimension-bar">
+                <span>🌍 维度（切换之后一定要点切换！不然不起作用）：</span>
+                <select id="dimensionSelect">
+                    <option value="主世界">主世界</option>
+                    <option value="下界">下界</option>
+                    <option value="末地">末地</option>
+                    <option value="资源世界">资源世界</option>
+                    <option value="异次元">异次元</option>
+                </select>
+                <button id="refreshBtn">切换</button>
+            </div>
+            <div class="aux-controls">
+                <label><input type="checkbox" id="showGridCheckbox"> 显示坐标网格</label>
+                <label><input type="checkbox" id="showAxesCheckbox"> 显示坐标轴</label>
+                <div class="coord-input">
+                    <span>跳转到：</span>
+                    <input type="number" id="jumpX" placeholder="X" value="0">
+                    <input type="number" id="jumpZ" placeholder="Z" value="0">
+                    <button id="jumpBtn">跳转</button>
+                </div>
+                <div id="coordDisplay">点击地图显示坐标</div>
+            </div>
+            <div class="svg-container" id="svgWrapper">
+                <div style="position: absolute; top: 10px; right: 10px; z-index: 100; display: flex; gap: 8px; background: rgba(255,255,255,0.8); padding: 4px 8px; border-radius: 30px; backdrop-filter: blur(4px);">
+                    <button id="zoomInBtn" style="font-size: 18px; font-weight: bold; width: 32px; height: 32px; padding: 0;">+</button>
+                    <button id="zoomOutBtn" style="font-size: 18px; font-weight: bold; width: 32px; height: 32px; padding: 0;">-</button>
+                    <button id="resetViewBtn" style="font-size: 12px; padding: 0 8px;">重置</button>
+                </div>
+                <svg id="subwayMap" width="100%" height="100%"></svg>
+            </div>
+            <div class="map-controls">
+                <span>💡 鼠标滚轮缩放 | 拖拽平移 | 悬停查看详情 | by woshiikun_1145 | Version 2.0.0</span>
+            </div>
+        </div>
+        <div class="sidebar">
+            <div class="plan-form">
+                <h3>🗺️ 路线规划</h3>
+                <input type="text" id="startStation" placeholder="起点站名" list="stationList">
+                <input type="text" id="endStation" placeholder="终点站名" list="stationList">
+                <datalist id="stationList"></datalist>
+                <button id="planBtn">规划路线</button>
+                <div id="planResult" class="result"></div>
+            </div>
+
+            <div class="admin-form">
+                <h3>🔧 管理工具</h3>
+                <div class="section-title">📌 站点管理</div>
+                <div id="stationListAdmin" class="item-list"></div>
+                <div style="margin-bottom:12px;">
+                    <button id="addStationBtn">➕ 添加站点</button>
+                    <button id="editStationBtn">✏️ 编辑站点</button>
+                    <button id="deleteStationBtn">🗑️ 删除站点</button>
+                </div>
+                <div class="section-title">🟢 线路管理</div>
+                <div id="lineListAdmin" class="item-list"></div>
+                <div style="margin-bottom:12px;">
+                    <button id="addLineBtn">➕ 添加线路</button>
+                    <button id="editLineBtn">✏️ 编辑线路</button>
+                    <button id="deleteLineBtn">🗑️ 删除线路</button>
+                    <button id="orderLineBtn">↗️ 调整顺序</button>
+                </div>
+                <div class="section-title">🏢 运营集团管理</div>
+                <div id="operatorListAdmin" class="item-list"></div>
+                <div style="margin-bottom:12px;">
+                    <button id="addOperatorBtn">➕ 添加集团</button>
+                    <button id="deleteOperatorBtn">🗑️ 删除集团</button>
+                </div>
+                <div class="section-title">🚶 站外换乘管理</div>
+                <div id="transferListAdmin" class="item-list"></div>
+                <div style="margin-bottom:12px;">
+                    <button id="addTransferBtn">➕ 添加换乘</button>
+                    <button id="deleteTransferBtn">🗑️ 删除换乘</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="modal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <div id="modalBody"></div>
+        <div class="modal-footer">
+            <button id="modalConfirm">确认</button>
+            <button id="modalCancel">取消</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const SUPABASE_URL = 'https://yvguuhtqjvdzpgunvbfm.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_RM2OJolzxQ3OqpZx7eHXgA_eLZNigDn';
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let currentDimension = '主世界';
+    let stations = [];
+    let lines = [];
+    let operators = [];
+    let transfers = [];      // 站外换乘列表
+    let tooltipDiv = null;
+    let svg = null;
+    let viewBox = { x: 0, y: 0, width: 800, height: 600 };
+    let isPanning = false;
+    let startPoint = { x: 0, y: 0 };
+    let startViewBox = { x: 0, y: 0 };
+
+    let showGrid = false;
+    let showAxes = false;
+
+    function showModal(title, bodyHtml, onConfirm) {
+        const modal = document.getElementById('modal');
+        const modalBody = document.getElementById('modalBody');
+        modalBody.innerHTML = `<h3>${title}</h3>${bodyHtml}`;
+        modal.style.display = 'flex';
+        const confirmBtn = document.getElementById('modalConfirm');
+        const cancelBtn = document.getElementById('modalCancel');
+        confirmBtn.onclick = async () => {
+            if (onConfirm) await onConfirm();
+            closeModal();
+        };
+        cancelBtn.onclick = closeModal;
+        document.querySelector('.modal .close').onclick = closeModal;
+        window.onclick = (e) => { if (e.target === modal) closeModal(); };
+    }
+    function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
+    function drawAuxiliaryElements() {
+        if (!svg) return;
+        if (!showGrid && !showAxes) return;
+        let step = 100;
+        const range = Math.max(viewBox.width, viewBox.height);
+        if (range > 2000) step = 500;
+        else if (range > 1000) step = 200;
+        else if (range > 500) step = 100;
+        else step = 50;
+        const startX = Math.floor(viewBox.x / step) * step;
+        const startZ = Math.floor(viewBox.y / step) * step;
+        const endX = viewBox.x + viewBox.width;
+        const endZ = viewBox.y + viewBox.height;
+        if (showGrid) {
+            for (let x = startX; x <= endX; x += step) {
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', x);
+                line.setAttribute('y1', viewBox.y);
+                line.setAttribute('x2', x);
+                line.setAttribute('y2', viewBox.y + viewBox.height);
+                line.setAttribute('stroke', '#ccc');
+                line.setAttribute('stroke-width', '0.5');
+                line.setAttribute('stroke-dasharray', '4 4');
+                svg.appendChild(line);
+            }
+            for (let z = startZ; z <= endZ; z += step) {
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', viewBox.x);
+                line.setAttribute('y1', z);
+                line.setAttribute('x2', viewBox.x + viewBox.width);
+                line.setAttribute('y2', z);
+                line.setAttribute('stroke', '#ccc');
+                line.setAttribute('stroke-width', '0.5');
+                line.setAttribute('stroke-dasharray', '4 4');
+                svg.appendChild(line);
+            }
+        }
+        if (showAxes) {
+            if (0 >= viewBox.y && 0 <= viewBox.y + viewBox.height) {
+                const xAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                xAxis.setAttribute('x1', viewBox.x);
+                xAxis.setAttribute('y1', 0);
+                xAxis.setAttribute('x2', viewBox.x + viewBox.width);
+                xAxis.setAttribute('y2', 0);
+                xAxis.setAttribute('stroke', '#f44336');
+                xAxis.setAttribute('stroke-width', '2');
+                svg.appendChild(xAxis);
+            }
+            if (0 >= viewBox.x && 0 <= viewBox.x + viewBox.width) {
+                const zAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                zAxis.setAttribute('x1', 0);
+                zAxis.setAttribute('y1', viewBox.y);
+                zAxis.setAttribute('x2', 0);
+                zAxis.setAttribute('y2', viewBox.y + viewBox.height);
+                zAxis.setAttribute('stroke', '#2196f3');
+                zAxis.setAttribute('stroke-width', '2');
+                svg.appendChild(zAxis);
+            }
+        }
+    }
+
+    async function loadData() {
+        stations = [];
+        lines = [];
+        transfers = [];
+        if (svg) svg.innerHTML = '';
+        const stationListAdmin = document.getElementById('stationListAdmin');
+        if (stationListAdmin) stationListAdmin.innerHTML = '';
+        const lineListAdmin = document.getElementById('lineListAdmin');
+        if (lineListAdmin) lineListAdmin.innerHTML = '';
+        const transferListAdmin = document.getElementById('transferListAdmin');
+        if (transferListAdmin) transferListAdmin.innerHTML = '';
+
+        const { data: stationsData, error: sErr } = await sb
+            .from('stations')
+            .select('*')
+            .eq('dimension', currentDimension);
+        const { data: linesData, error: lErr } = await sb
+            .from('lines')
+            .select('*')
+            .eq('dimension', currentDimension);
+        const { data: operatorsData, error: oErr } = await sb.from('operators').select('*');
+        const { data: transfersData, error: tErr } = await sb
+            .from('transfers')
+            .select('*')
+            .eq('dimension', currentDimension);
+
+        if (!sErr) stations = stationsData || [];
+        if (!lErr) lines = linesData || [];
+        if (!oErr) operators = operatorsData || [];
+        if (!tErr) transfers = transfersData || [];
+
+        updateStationDatalist();
+        renderMap();
+        renderAdminLists();
+    }
+
+    function updateStationDatalist() {
+        const datalist = document.getElementById('stationList');
+        datalist.innerHTML = '';
+        stations.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.name;
+            datalist.appendChild(opt);
+        });
+    }
+
+    function drawPolyline(points, lineColor, lineWidth, dashArray) {
+        if (!points.length) return;
+        const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        const pointsStr = points.map(p => `${p[0]},${p[1]}`).join(' ');
+        polyline.setAttribute('points', pointsStr);
+        polyline.setAttribute('stroke', lineColor);
+        polyline.setAttribute('stroke-width', lineWidth);
+        polyline.setAttribute('fill', 'none');
+        polyline.setAttribute('stroke-linecap', 'round');
+        if (dashArray) polyline.setAttribute('stroke-dasharray', dashArray);
+        return polyline;
+    }
+
+    function renderMap() {
+    if (!svg) svg = document.getElementById('subwayMap');
+    svg.innerHTML = '';
+    drawAuxiliaryElements();
+
+    if (!stations.length) return;
+
+    let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+    stations.forEach(s => {
+        minX = Math.min(minX, s.x);
+        maxX = Math.max(maxX, s.x);
+        minZ = Math.min(minZ, s.z);
+        maxZ = Math.max(maxZ, s.z);
+    });
+    const padding = 60;
+    const rangeX = maxX - minX || 1;
+    const rangeZ = maxZ - minZ || 1;
+    if (!viewBox.width || viewBox.width === 800) {
+        viewBox = {
+            x: minX - padding,
+            y: minZ - padding,
+            width: rangeX + 2 * padding,
+            height: rangeZ + 2 * padding
+        };
+        updateViewBox();
+    }
+
+    const linesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    const stationsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    const transfersGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+
+    // 收集所有线段（包含折点）
+    const segments = [];
+    lines.forEach(line => {
+        const order = line.station_order;
+        const breakpoints = line.breakpoints || [];
+        while (breakpoints.length < order.length - 1) breakpoints.push([]);
+        for (let i = 0; i < order.length - 1; i++) {
+            const from = stations.find(s => s.id === order[i]);
+            const to = stations.find(s => s.id === order[i+1]);
+            if (!from || !to) continue;
+            const points = [[from.x, from.z]];
+            const segBreak = breakpoints[i] || [];
+            for (const bp of segBreak) {
+                points.push([bp[0], bp[1]]);
+            }
+            points.push([to.x, to.z]);
+            const dash = line.type === '单轨铁路' ? '8 4' : (line.type === '蓝冰船' ? '2 6' : (line.type === '长距铁路' ? '' : ''));
+            const baseWidth = line.type === '长距铁路' ? 3 : 5;
+            segments.push({
+                points: points,
+                lineId: line.id,
+                lineColor: line.color,
+                dash: dash,
+                baseWidth: baseWidth
+            });
+        }
+        // 环线首尾连接
+        if (line.is_loop && order.length >= 2) {
+            const first = stations.find(s => s.id === order[0]);
+            const last = stations.find(s => s.id === order[order.length - 1]);
+            if (first && last) {
+                const points = [[last.x, last.z], [first.x, first.z]];
+                const dash = line.type === '单轨铁路' ? '8 4' : (line.type === '蓝冰船' ? '2 6' : (line.type === '长距铁路' ? '' : ''));
+                const baseWidth = line.type === '长距铁路' ? 3 : 5;
+                segments.push({
+                    points: points,
+                    lineId: line.id,
+                    lineColor: line.color,
+                    dash: dash,
+                    baseWidth: baseWidth
+                });
+            }
+        }
+    });
+
+    // 标准化线段并分组
+    const normalizedMap = new Map();
+    segments.forEach(seg => {
+        const points = seg.points;
+        if (points.length < 2) return;
+        const forward = points.map(p => `${p[0]},${p[1]}`).join('|');
+        const backward = points.slice().reverse().map(p => `${p[0]},${p[1]}`).join('|');
+        const key = forward < backward ? forward : backward;
+        if (!normalizedMap.has(key)) normalizedMap.set(key, []);
+        normalizedMap.get(key).push(seg);
+    });
+
+    // 绘制所有线段（考虑共线偏移）
+    normalizedMap.forEach(segGroup => {
+        const count = segGroup.length;
+        if (count === 1) {
+            const seg = segGroup[0];
+            const lineWidth = seg.baseWidth;
+            const polyline = drawPolyline(seg.points, seg.lineColor, lineWidth, seg.dash);
+            if (polyline) linesGroup.appendChild(polyline);
+        } else {
+            // 共线处理：偏移量步长 2px，每条线路线宽为原线宽 / count
+            const step = 2;
+            const offsets = [];
+            for (let i = 0; i < count; i++) {
+                offsets.push((i - (count-1)/2) * step);
+            }
+            segGroup.forEach((seg, idx) => {
+                const offset = offsets[idx];
+                const newPoints = [];
+                for (let i = 0; i < seg.points.length; i++) {
+                    const p = seg.points[i];
+                    let dir = [0,0];
+                    if (i === 0) {
+                        const next = seg.points[i+1];
+                        dir = [next[0] - p[0], next[1] - p[1]];
+                    } else if (i === seg.points.length - 1) {
+                        const prev = seg.points[i-1];
+                        dir = [p[0] - prev[0], p[1] - prev[1]];
+                    } else {
+                        const prev = seg.points[i-1];
+                        const next = seg.points[i+1];
+                        const dir1 = [p[0] - prev[0], p[1] - prev[1]];
+                        const dir2 = [next[0] - p[0], next[1] - p[1]];
+                        dir = [(dir1[0] + dir2[0])/2, (dir1[1] + dir2[1])/2];
+                    }
+                    const len = Math.hypot(dir[0], dir[1]);
+                    if (len < 1e-6) {
+                        newPoints.push([p[0], p[1]]);
+                        continue;
+                    }
+                    const perp = [-dir[1] / len, dir[0] / len];
+                    const dx = perp[0] * offset;
+                    const dy = perp[1] * offset;
+                    newPoints.push([p[0] + dx, p[1] + dy]);
+                }
+                const lineWidth = Math.max(1, seg.baseWidth / count);
+                const polyline = drawPolyline(newPoints, seg.lineColor, lineWidth, seg.dash);
+                if (polyline) linesGroup.appendChild(polyline);
+            });
+        }
+    });
+
+    // 绘制站外换乘（浅灰色虚线）
+    transfers.forEach(transfer => {
+        const from = stations.find(s => s.id === transfer.from_station);
+        const to = stations.find(s => s.id === transfer.to_station);
+        if (from && to) {
+            const points = [[from.x, from.z], [to.x, to.z]];
+            const dash = '4 4';
+            const lineWidth = '2';
+            const polyline = drawPolyline(points, '#aaa', lineWidth, dash);
+            if (polyline) transfersGroup.appendChild(polyline);
+        }
+    });
+
+    // 绘制站点（保持不变）
+    stations.forEach(station => {
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', station.x);
+        circle.setAttribute('cy', station.z);
+        circle.setAttribute('r', '6');
+        circle.setAttribute('fill', 'white');
+        circle.setAttribute('stroke', '#2c3e66');
+        circle.setAttribute('stroke-width', '2');
+        circle.style.cursor = 'pointer';
+        circle.addEventListener('mouseenter', (e) => {
+            const linesThrough = lines.filter(line => line.station_order.includes(station.id));
+            const linesInfo = linesThrough.map(l => `${l.name} (${l.type}, ${l.operator || '未知集团'})`).join(', ');
+            tooltipDiv.innerHTML = `🚉 ${station.name}<br>坐标: X=${station.x}, Z=${station.z}<br>🔄 途经线路: ${linesInfo || '无'}`;
+            tooltipDiv.style.left = (e.pageX + 12) + 'px';
+            tooltipDiv.style.top = (e.pageY - 30) + 'px';
+            tooltipDiv.style.display = 'block';
+        });
+        circle.addEventListener('mousemove', (e) => {
+            tooltipDiv.style.left = (e.pageX + 12) + 'px';
+            tooltipDiv.style.top = (e.pageY - 30) + 'px';
+        });
+        circle.addEventListener('mouseleave', () => { tooltipDiv.style.display = 'none'; });
+        stationsGroup.appendChild(circle);
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', station.x + 8);
+        text.setAttribute('y', station.z - 4);
+        text.setAttribute('font-size', '12');
+        text.setAttribute('fill', '#1e3c72');
+        text.setAttribute('stroke', 'white');
+        text.setAttribute('stroke-width', '0.5');
+        text.textContent = station.name;
+        stationsGroup.appendChild(text);
+    });
+
+    svg.appendChild(transfersGroup);
+    svg.appendChild(linesGroup);
+    svg.appendChild(stationsGroup);
+}
+
+    function zoomIn() {
+        const container = document.getElementById('svgWrapper');
+        const rect = container.getBoundingClientRect();
+        const containerAspect = rect.width / rect.height;
+        const newWidth = viewBox.width * 0.8;
+        const newHeight = newWidth / containerAspect;
+        const centerX = viewBox.x + viewBox.width / 2;
+        const centerY = viewBox.y + viewBox.height / 2;
+        viewBox.x = centerX - newWidth / 2;
+        viewBox.y = centerY - newHeight / 2;
+        viewBox.width = newWidth;
+        viewBox.height = newHeight;
+        updateViewBox();
+        renderMap();
+    }
+
+    function zoomOut() {
+        const container = document.getElementById('svgWrapper');
+        const rect = container.getBoundingClientRect();
+        const containerAspect = rect.width / rect.height;
+        const newWidth = viewBox.width * 1.25;
+        const newHeight = newWidth / containerAspect;
+        const centerX = viewBox.x + viewBox.width / 2;
+        const centerY = viewBox.y + viewBox.height / 2;
+        viewBox.x = centerX - newWidth / 2;
+        viewBox.y = centerY - newHeight / 2;
+        viewBox.width = newWidth;
+        viewBox.height = newHeight;
+        updateViewBox();
+        renderMap();
+    }
+
+    function resetView() {
+        if (!stations.length) return;
+        let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+        stations.forEach(s => {
+            minX = Math.min(minX, s.x);
+            maxX = Math.max(maxX, s.x);
+            minZ = Math.min(minZ, s.z);
+            maxZ = Math.max(maxZ, s.z);
+        });
+        const padding = 60;
+        const rangeX = maxX - minX || 1;
+        const rangeZ = maxZ - minZ || 1;
+        viewBox = {
+            x: minX - padding,
+            y: minZ - padding,
+            width: rangeX + 2 * padding,
+            height: rangeZ + 2 * padding
+        };
+        updateViewBox();
+        renderMap();
+    }
+
+    function initPanZoom() {
+        svg = document.getElementById('subwayMap');
+        const container = document.getElementById('svgWrapper');
+        container.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? 1.1 : 0.9;
+            const rect = container.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            const scaleX = viewBox.width / rect.width;
+            const scaleY = viewBox.height / rect.height;
+            const svgX = viewBox.x + mouseX * scaleX;
+            const svgY = viewBox.y + mouseY * scaleY;
+            let newWidth = viewBox.width * delta;
+            let newHeight = viewBox.height * delta;
+            newWidth = Math.min(2000, Math.max(200, newWidth));
+            newHeight = Math.min(1500, Math.max(150, newHeight));
+            viewBox.x = svgX - (mouseX * (newWidth / rect.width));
+            viewBox.y = svgY - (mouseY * (newHeight / rect.height));
+            viewBox.width = newWidth;
+            viewBox.height = newHeight;
+            updateViewBox();
+            renderMap();
+        });
+        container.addEventListener('mousedown', (e) => {
+            if (e.target === svg || e.target.closest('svg')) {
+                isPanning = true;
+                startPoint = { x: e.clientX, y: e.clientY };
+                startViewBox = { x: viewBox.x, y: viewBox.y };
+                container.style.cursor = 'grabbing';
+                e.preventDefault();
+            }
+        });
+        container.addEventListener('touchstart', (e) => {
+            if (e.target === svg || e.target.closest('svg')) {
+                e.preventDefault();
+                isPanning = true;
+                const touch = e.touches[0];
+                startPoint = { x: touch.clientX, y: touch.clientY };
+                startViewBox = { x: viewBox.x, y: viewBox.y };
+                container.style.cursor = 'grabbing';
+            }
+        });
+        window.addEventListener('touchmove', (e) => {
+            if (!isPanning) return;
+            e.preventDefault();
+            const touch = e.touches[0];
+            const dx = touch.clientX - startPoint.x;
+            const dy = touch.clientY - startPoint.y;
+            const scaleX = viewBox.width / container.clientWidth;
+            const scaleY = viewBox.height / container.clientHeight;
+            viewBox.x = startViewBox.x - dx * scaleX;
+            viewBox.y = startViewBox.y - dy * scaleY;
+            updateViewBox();
+            renderMap();
+        });
+        window.addEventListener('touchend', () => {
+            isPanning = false;
+            container.style.cursor = 'grab';
+        });
+        window.addEventListener('mousemove', (e) => {
+            if (!isPanning) return;
+            const dx = e.clientX - startPoint.x;
+            const dy = e.clientY - startPoint.y;
+            const scaleX = viewBox.width / container.clientWidth;
+            const scaleY = viewBox.height / container.clientHeight;
+            viewBox.x = startViewBox.x - dx * scaleX;
+            viewBox.y = startViewBox.y - dy * scaleY;
+            updateViewBox();
+            renderMap();
+        });
+        window.addEventListener('mouseup', () => { isPanning = false; container.style.cursor = 'grab'; });
+        svg.addEventListener('click', (e) => {
+            const rect = svg.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            const scaleX = viewBox.width / rect.width;
+            const scaleY = viewBox.height / rect.height;
+            const worldX = viewBox.x + mouseX * scaleX;
+            const worldZ = viewBox.y + mouseY * scaleY;
+            document.getElementById('coordDisplay').innerHTML = `点击坐标: X=${worldX.toFixed(1)}, Z=${worldZ.toFixed(1)}`;
+        });
+    }
+    function updateViewBox() { svg.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`); }
+
+    // 路线规划（含环线和站外换乘）
+    async function planRoute() {
+        const start = document.getElementById('startStation').value.trim();
+        const end = document.getElementById('endStation').value.trim();
+        if (!start || !end) { alert('请填写起点和终点'); return; }
+
+        // 构建图：顶点是站点 ID
+        const graph = {};
+
+        // 1. 添加铁路线路边（无向，权重 = 欧几里得距离）
+        lines.forEach(line => {
+            const order = line.station_order;
+            for (let i = 0; i < order.length - 1; i++) {
+                const a = order[i];
+                const b = order[i+1];
+                const from = stations.find(s => s.id === a);
+                const to = stations.find(s => s.id === b);
+                if (from && to) {
+                    const dist = Math.hypot(from.x - to.x, from.z - to.z);
+                    if (!graph[a]) graph[a] = [];
+                    if (!graph[b]) graph[b] = [];
+                    graph[a].push({ node: b, weight: dist });
+                    graph[b].push({ node: a, weight: dist });
+                }
+            }
+            // 环线首尾连接
+            if (line.is_loop && order.length >= 2) {
+                const first = order[0];
+                const last = order[order.length - 1];
+                const from = stations.find(s => s.id === first);
+                const to = stations.find(s => s.id === last);
+                if (from && to) {
+                    const dist = Math.hypot(from.x - to.x, from.z - to.z);
+                    if (!graph[first]) graph[first] = [];
+                    if (!graph[last]) graph[last] = [];
+                    graph[first].push({ node: last, weight: dist });
+                    graph[last].push({ node: first, weight: dist });
+                }
+            }
+        });
+
+        // 2. 添加站外换乘边（权重使用 distance 或 weight 字段）
+        transfers.forEach(transfer => {
+            const a = transfer.from_station;
+            const b = transfer.to_station;
+            const from = stations.find(s => s.id === a);
+            const to = stations.find(s => s.id === b);
+            if (from && to) {
+                // 使用存储的 weight，如果没有则用欧氏距离
+                const dist = transfer.weight !== undefined ? transfer.weight : Math.hypot(from.x - to.x, from.z - to.z);
+                if (!graph[a]) graph[a] = [];
+                if (!graph[b]) graph[b] = [];
+                graph[a].push({ node: b, weight: dist });
+                graph[b].push({ node: a, weight: dist });
+            }
+        });
+
+        const startStation = stations.find(s => s.name === start);
+        const endStation = stations.find(s => s.name === end);
+        if (!startStation || !endStation) { alert('站点不存在'); return; }
+
+        // Dijkstra 算法（因为边权为正）
+        const dist = {};
+        const prev = {};
+        const visited = new Set();
+        const nodes = stations.map(s => s.id);
+        for (const node of nodes) dist[node] = Infinity;
+        dist[startStation.id] = 0;
+
+        while (true) {
+            let minNode = null;
+            let minDist = Infinity;
+            for (const node of nodes) {
+                if (!visited.has(node) && dist[node] < minDist) {
+                    minDist = dist[node];
+                    minNode = node;
+                }
+            }
+            if (minNode === null) break;
+            visited.add(minNode);
+            if (minNode === endStation.id) break;
+
+            const neighbors = graph[minNode] || [];
+            for (const neighbor of neighbors) {
+                const alt = dist[minNode] + neighbor.weight;
+                if (alt < dist[neighbor.node]) {
+                    dist[neighbor.node] = alt;
+                    prev[neighbor.node] = minNode;
+                }
+            }
+        }
+
+        if (dist[endStation.id] === Infinity) {
+            document.getElementById('planResult').innerHTML = '<span style="color:red">❌ 未找到路径</span>';
+            return;
+        }
+
+        // 重建路径
+        const pathIds = [];
+        let cur = endStation.id;
+        while (cur !== undefined) {
+            pathIds.unshift(cur);
+            cur = prev[cur];
+        }
+        const pathStations = pathIds.map(id => stations.find(s => s.id === id));
+
+        // 计算换乘（原逻辑保留，但换乘站也显示）
+        const transfersAtStations = new Set();
+        for (let i = 1; i < pathStations.length - 1; i++) {
+            const prevStation = pathStations[i-1];
+            const currStation = pathStations[i];
+            const nextStation = pathStations[i+1];
+            const prevLines = lines.filter(l => l.station_order.includes(prevStation.id)).map(l => l.name);
+            const currLines = lines.filter(l => l.station_order.includes(currStation.id)).map(l => l.name);
+            const nextLines = lines.filter(l => l.station_order.includes(nextStation.id)).map(l => l.name);
+            if (currLines.length > 1 && prevLines.some(l => currLines.includes(l)) && nextLines.some(l => currLines.includes(l))) {
+                transfersAtStations.add(currStation.name);
+            }
+        }
+
+        let html = `<strong>✅ 最短路径 (${pathStations.length}站)</strong><br>`;
+        html += pathStations.map((p, i) => `${i+1}. ${p.name}`).join('<br>');
+        if (transfersAtStations.size > 0) {
+            html += `<br><span style="color:#e67e22;">🔄 站内换乘: ${Array.from(transfersAtStations).join(', ')}</span>`;
+        }
+        document.getElementById('planResult').innerHTML = html;
+    }
+
+    async function renderAdminLists() {
+        const stationDiv = document.getElementById('stationListAdmin');
+        stationDiv.innerHTML = '';
+        stations.forEach(s => {
+            const div = document.createElement('div');
+            div.className = 'station-item';
+            div.innerHTML = `<strong>${s.name}</strong> (${s.x}, ${s.z})<span>ID: ${s.id}</span>`;
+            stationDiv.appendChild(div);
+        });
+        const lineDiv = document.getElementById('lineListAdmin');
+        lineDiv.innerHTML = '';
+        lines.forEach(l => {
+            const stationNames = l.station_order.map(id => stations.find(s => s.id === id)?.name).join(' → ');
+            const loopIcon = l.is_loop ? '🔄 ' : '';
+            const div = document.createElement('div');
+            div.className = 'line-item';
+            div.innerHTML = `<div><span class="color-preview" style="background:${l.color};"></span>${loopIcon}<strong>${l.name}</strong> (${l.type})<br><small>运营集团: ${l.operator || '无'} | 站点: ${stationNames}</small></div>`;
+            lineDiv.appendChild(div);
+        });
+        const operatorDiv = document.getElementById('operatorListAdmin');
+        operatorDiv.innerHTML = '';
+        operators.forEach(op => {
+            const div = document.createElement('div');
+            div.className = 'operator-item';
+            div.innerHTML = `<strong>${op.name}</strong><span>ID: ${op.id}</span>`;
+            operatorDiv.appendChild(div);
+        });
+        const transferDiv = document.getElementById('transferListAdmin');
+        transferDiv.innerHTML = '';
+        transfers.forEach(t => {
+            const from = stations.find(s => s.id === t.from_station);
+            const to = stations.find(s => s.id === t.to_station);
+            if (from && to) {
+                const div = document.createElement('div');
+                div.className = 'transfer-item';
+                div.innerHTML = `<strong>${from.name} ⇄ ${to.name}</strong> <span style="font-size:12px;">步行距离: ${t.weight !== undefined ? t.weight.toFixed(1) : Math.hypot(from.x-to.x, from.z-to.z).toFixed(1)}</span>`;
+                transferDiv.appendChild(div);
+            }
+        });
+    }
+
+    async function addStation() {
+        showModal('添加站点', `
+            <label>站名</label><input id="staName">
+            <label>X坐标</label><input id="staX" value="0">
+            <label>Z坐标</label><input id="staZ" value="0">
+        `, async () => {
+            const name = document.getElementById('staName').value;
+            const x = parseFloat(document.getElementById('staX').value);
+            const z = parseFloat(document.getElementById('staZ').value);
+            if (!name || isNaN(x) || isNaN(z)) { alert('请填写完整'); return; }
+            const { error } = await sb.from('stations').insert([{
+                name, x, z,
+                dimension: currentDimension
+            }]);
+            if (error) alert(error.message);
+            else { alert('添加成功'); closeModal(); await loadData(); }
+        });
+    }
+    async function editStation() {
+        if (!stations.length) { alert('暂无站点'); return; }
+        showModal('编辑站点', `
+            <label>选择站点</label>
+            <select id="staId">${stations.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}</select>
+            <label>新站名</label><input id="staName">
+            <label>新X坐标</label><input id="staX">
+            <label>新Z坐标</label><input id="staZ">
+        `, async () => {
+            const id = document.getElementById('staId').value;
+            const name = document.getElementById('staName').value;
+            const x = parseFloat(document.getElementById('staX').value);
+            const z = parseFloat(document.getElementById('staZ').value);
+            if (!name || isNaN(x) || isNaN(z)) { alert('请填写完整'); return; }
+            const { error } = await sb.from('stations').update({ name, x, z }).eq('id', id);
+            if (error) alert(error.message);
+            else { alert('编辑成功'); closeModal(); await loadData(); }
+        });
+        const select = document.getElementById('staId');
+        const loadStation = () => {
+            const s = stations.find(s => s.id == select.value);
+            if (s) {
+                document.getElementById('staName').value = s.name;
+                document.getElementById('staX').value = s.x;
+                document.getElementById('staZ').value = s.z;
+            }
+        };
+        select.onchange = loadStation;
+        loadStation();
+    }
+    async function deleteStation() {
+        if (!stations.length) { alert('暂无站点'); return; }
+        showModal('删除站点', `<label>选择站点</label><select id="staId">${stations.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}</select>`, async () => {
+            const id = document.getElementById('staId').value;
+            if (!confirm('删除站点将从所有线路中移除，确定吗？')) return;
+            for (const line of lines) {
+                if (line.station_order.includes(parseInt(id))) {
+                    const newOrder = line.station_order.filter(sid => sid != id);
+                    await sb.from('lines').update({ station_order: newOrder }).eq('id', line.id);
+                }
+            }
+            // 删除与该站点相关的换乘
+            await sb.from('transfers').delete().or(`from_station.eq.${id},to_station.eq.${id}`);
+            const { error } = await sb.from('stations').delete().eq('id', id);
+            if (error) alert(error.message);
+            else { alert('删除成功'); closeModal(); await loadData(); }
+        });
+    }
+
+    // 折点编辑器辅助函数
+    function renderBreakpointsEditor(selectedStationIds, existingBreakpoints) {
+        const segments = [];
+        for (let i = 0; i < selectedStationIds.length - 1; i++) {
+            const from = stations.find(s => s.id === selectedStationIds[i]);
+            const to = stations.find(s => s.id === selectedStationIds[i+1]);
+            const fromName = from ? from.name : '?';
+            const toName = to ? to.name : '?';
+            const bpList = (existingBreakpoints && existingBreakpoints[i]) ? existingBreakpoints[i] : [];
+            segments.push(`
+                <div class="breakpoints-section" data-segment="${i}">
+                    <div class="segment-title">第 ${i+1} 段：${fromName} → ${toName}</div>
+                    <div id="bp-list-${i}" class="bp-list">
+                        ${bpList.map((bp, idx) => `
+                            <div class="bp-item" data-idx="${idx}">
+                                <input type="number" class="bp-x" value="${bp[0]}" placeholder="X" style="width:70px">
+                                <input type="number" class="bp-z" value="${bp[1]}" placeholder="Z" style="width:70px">
+                                <button type="button" class="small-btn remove-bp">删除</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button type="button" class="small-btn add-bp" data-segment="${i}">+ 添加折点</button>
+                </div>
+            `);
+        }
+        return segments.join('');
+    }
+
+    function collectBreakpointsFromEditor(selectedStationIds) {
+        const segments = selectedStationIds.length - 1;
+        const breakpoints = [];
+        for (let i = 0; i < segments; i++) {
+            const bpList = [];
+            const container = document.getElementById(`bp-list-${i}`);
+            if (container) {
+                const items = container.querySelectorAll('.bp-item');
+                items.forEach(item => {
+                    const xInput = item.querySelector('.bp-x');
+                    const zInput = item.querySelector('.bp-z');
+                    const x = parseFloat(xInput.value);
+                    const z = parseFloat(zInput.value);
+                    if (!isNaN(x) && !isNaN(z)) {
+                        bpList.push([x, z]);
+                    }
+                });
+            }
+            breakpoints.push(bpList);
+        }
+        return breakpoints;
+    }
+
+    function bindBreakpointsEvents(selectedStationIds) {
+        document.querySelectorAll('.add-bp').forEach(btn => {
+            btn.onclick = (e) => {
+                e.preventDefault();
+                const segment = btn.getAttribute('data-segment');
+                const listDiv = document.getElementById(`bp-list-${segment}`);
+                const newItem = document.createElement('div');
+                newItem.className = 'bp-item';
+                newItem.innerHTML = `
+                    <input type="number" class="bp-x" placeholder="X" style="width:70px">
+                    <input type="number" class="bp-z" placeholder="Z" style="width:70px">
+                    <button type="button" class="small-btn remove-bp">删除</button>
+                `;
+                listDiv.appendChild(newItem);
+                bindRemoveEvents();
+            };
+        });
+        function bindRemoveEvents() {
+            document.querySelectorAll('.remove-bp').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.preventDefault();
+                    btn.closest('.bp-item').remove();
+                };
+            });
+        }
+        bindRemoveEvents();
+    }
+
+    async function addLine() {
+        const lineTypes = ['单轨铁路', '双轨铁路', '蓝冰船', '长距铁路'];
+        const stationOptions = stations.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+        const operatorOptions = operators.map(op => `<option value="${op.name}">${op.name}</option>`).join('');
+        let selectedStationIds = [];
+
+        const modalHtml = `
+            <label>线路名称</label><input id="lineName">
+            <label>线路类型</label><select id="lineType">${lineTypes.map(t => `<option value="${t}">${t}</option>`).join('')}</select>
+            <label>线路颜色</label><input type="color" id="lineColor" value="#888888">
+            <label>运营集团</label><select id="operator"><option value="">无</option>${operatorOptions}</select>
+            <label><input type="checkbox" id="isLoopCheckbox"> <span>环线（首尾相连）</span></label>
+            <label>站点顺序 (按住Ctrl多选，按顺序点击选择)</label>
+            <select id="stationOrderSelect" multiple size="6">${stationOptions}</select>
+            <div id="breakpointsEditorArea"></div>
+            <small>提示：按顺序依次点击选择站点，选中顺序即为线路顺序。折点可在选择站点后添加。</small>
+        `;
+        showModal('添加线路', modalHtml, async () => {
+            const name = document.getElementById('lineName').value;
+            const type = document.getElementById('lineType').value;
+            const color = document.getElementById('lineColor').value;
+            const operator = document.getElementById('operator').value;
+            const isLoop = document.getElementById('isLoopCheckbox').checked;
+            const selected = Array.from(document.getElementById('stationOrderSelect').selectedOptions);
+            const station_order = selected.map(opt => parseInt(opt.value));
+            if (!name || !type || !color) { alert('请填写完整'); return; }
+            if (station_order.length < 2) { alert('至少选择两个站点'); return; }
+            const breakpoints = collectBreakpointsFromEditor(station_order);
+            const { error } = await sb.from('lines').insert([{
+                name, station_order, type, color, operator,
+                dimension: currentDimension,
+                is_loop: isLoop,
+                breakpoints: breakpoints
+            }]);
+            if (error) alert(error.message);
+            else { alert('添加成功'); closeModal(); await loadData(); }
+        });
+
+        setTimeout(() => {
+            const stationSelect = document.getElementById('stationOrderSelect');
+            const breakpointsArea = document.getElementById('breakpointsEditorArea');
+            function updateBreakpointsEditor() {
+                const selected = Array.from(stationSelect.selectedOptions);
+                const ids = selected.map(opt => parseInt(opt.value));
+                if (ids.length >= 2) {
+                    breakpointsArea.innerHTML = renderBreakpointsEditor(ids, []);
+                    bindBreakpointsEvents(ids);
+                } else {
+                    breakpointsArea.innerHTML = '<div style="color:gray; margin:8px 0;">选择至少两个站点以添加折点</div>';
+                }
+            }
+            stationSelect.addEventListener('change', updateBreakpointsEditor);
+            updateBreakpointsEditor();
+        }, 50);
+    }
+
+    async function editLine() {
+        if (!lines.length) { alert('暂无线路'); return; }
+        const lineTypes = ['单轨铁路', '双轨铁路', '蓝冰船', '长距铁路'];
+        const stationOptions = stations.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+        const operatorOptions = operators.map(op => `<option value="${op.name}">${op.name}</option>`).join('');
+        const modalHtml = `
+            <label>选择线路</label>
+            <select id="lineId">${lines.map(l => `<option value="${l.id}">${l.name}</option>`).join('')}</select>
+            <label>线路名称</label><input id="lineName">
+            <label>线路类型</label><select id="lineType">${lineTypes.map(t => `<option value="${t}">${t}</option>`).join('')}</select>
+            <label>线路颜色</label><input type="color" id="lineColor">
+            <label>运营集团</label><select id="operator"><option value="">无</option>${operatorOptions}</select>
+            <label><input type="checkbox" id="isLoopCheckbox"> 环线（首尾相连）</label>
+            <label>站点顺序 (按住Ctrl多选，按顺序点击选择)</label>
+            <select id="stationOrderSelect" multiple size="6">${stationOptions}</select>
+            <div id="breakpointsEditorArea"></div>
+            <small>注意：调整站点顺序后，原有折点可能不匹配，请重新设置折点。</small>
+        `;
+        showModal('编辑线路', modalHtml, async () => {
+            const id = document.getElementById('lineId').value;
+            const name = document.getElementById('lineName').value;
+            const type = document.getElementById('lineType').value;
+            const color = document.getElementById('lineColor').value;
+            const operator = document.getElementById('operator').value;
+            const isLoop = document.getElementById('isLoopCheckbox').checked;
+            const selected = Array.from(document.getElementById('stationOrderSelect').selectedOptions);
+            const station_order = selected.map(opt => parseInt(opt.value));
+            if (!name || !type || !color) { alert('请填写完整'); return; }
+            if (station_order.length < 2) { alert('至少选择两个站点'); return; }
+            const breakpoints = collectBreakpointsFromEditor(station_order);
+            const { error } = await sb.from('lines').update({
+                name, station_order, type, color, operator,
+                is_loop: isLoop,
+                breakpoints: breakpoints
+            }).eq('id', id);
+            if (error) alert(error.message);
+            else { alert('编辑成功'); closeModal(); await loadData(); }
+        });
+
+        setTimeout(() => {
+            const lineSelect = document.getElementById('lineId');
+            const lineNameInput = document.getElementById('lineName');
+            const lineTypeSelect = document.getElementById('lineType');
+            const lineColorInput = document.getElementById('lineColor');
+            const operatorSelect = document.getElementById('operator');
+            const loopCheckbox = document.getElementById('isLoopCheckbox');
+            const stationSelect = document.getElementById('stationOrderSelect');
+            const breakpointsArea = document.getElementById('breakpointsEditorArea');
+
+            function loadLineData() {
+                const line = lines.find(l => l.id == lineSelect.value);
+                if (!line) return;
+                lineNameInput.value = line.name;
+                lineTypeSelect.value = line.type;
+                lineColorInput.value = line.color;
+                operatorSelect.value = line.operator || '';
+                loopCheckbox.checked = line.is_loop || false;
+                for (let opt of stationSelect.options) {
+                    opt.selected = line.station_order.includes(parseInt(opt.value));
+                }
+                const ids = line.station_order;
+                if (ids.length >= 2) {
+                    breakpointsArea.innerHTML = renderBreakpointsEditor(ids, line.breakpoints || []);
+                    bindBreakpointsEvents(ids);
+                } else {
+                    breakpointsArea.innerHTML = '<div style="color:gray;">线路站点数不足，无法编辑折点</div>';
+                }
+            }
+            lineSelect.addEventListener('change', loadLineData);
+            stationSelect.addEventListener('change', () => {
+                const ids = Array.from(stationSelect.selectedOptions).map(opt => parseInt(opt.value));
+                if (ids.length >= 2) {
+                    breakpointsArea.innerHTML = renderBreakpointsEditor(ids, []);
+                    bindBreakpointsEvents(ids);
+                } else {
+                    breakpointsArea.innerHTML = '<div style="color:gray;">选择至少两个站点以添加折点</div>';
+                }
+            });
+            loadLineData();
+        }, 50);
+    }
+
+    async function deleteLine() {
+        if (!lines.length) { alert('暂无线路'); return; }
+        showModal('删除线路', `<label>选择线路</label><select id="lineId">${lines.map(l => `<option value="${l.id}">${l.name}</option>`).join('')}</select>`, async () => {
+            const id = document.getElementById('lineId').value;
+            if (!confirm('确定删除该线路吗？')) return;
+            const { error } = await sb.from('lines').delete().eq('id', id);
+            if (error) alert(error.message);
+            else { alert('删除成功'); closeModal(); await loadData(); }
+        });
+    }
+
+    async function orderLine() {
+        if (!lines.length) { alert('暂无线路'); return; }
+        showModal('调整线路站点顺序', `
+            <label>选择线路</label>
+            <select id="lineSelect">${lines.map(l => `<option value="${l.id}">${l.name}</option>`).join('')}</select>
+            <div id="orderContainer"></div>
+        `, null, true);
+        const lineSelect = document.getElementById('lineSelect');
+        const orderContainer = document.getElementById('orderContainer');
+        let currentOrder = [];
+        function renderOrder(stationIds) {
+            const stationsInOrder = stationIds.map(id => stations.find(s => s.id === id)).filter(s => s);
+            orderContainer.innerHTML = `
+                <div style="margin:10px 0;">
+                    ${stationsInOrder.map((s, idx) => `
+                        <div style="display:flex; justify-content:space-between; margin:6px 0; padding:6px; background:#f5f5f5; border-radius:8px;">
+                            <span><strong>${idx+1}.</strong> ${s.name}</span>
+                            <div>
+                                <button class="small-btn upBtn" data-idx="${idx}" ${idx===0 ? 'disabled' : ''}>▲</button>
+                                <button class="small-btn downBtn" data-idx="${idx}" ${idx===stationIds.length-1 ? 'disabled' : ''}>▼</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                <button id="saveOrderBtn" class="small-btn">保存顺序</button>
+            `;
+            document.querySelectorAll('.upBtn').forEach(btn => {
+                btn.onclick = () => {
+                    const idx = parseInt(btn.dataset.idx);
+                    if (idx > 0) {
+                        [stationIds[idx-1], stationIds[idx]] = [stationIds[idx], stationIds[idx-1]];
+                        renderOrder(stationIds);
+                    }
+                };
+            });
+            document.querySelectorAll('.downBtn').forEach(btn => {
+                btn.onclick = () => {
+                    const idx = parseInt(btn.dataset.idx);
+                    if (idx < stationIds.length-1) {
+                        [stationIds[idx], stationIds[idx+1]] = [stationIds[idx+1], stationIds[idx]];
+                        renderOrder(stationIds);
+                    }
+                };
+            });
+            document.getElementById('saveOrderBtn').onclick = async () => {
+                const { error } = await sb.from('lines').update({ station_order: stationIds }).eq('id', lineSelect.value);
+                if (error) alert(error.message);
+                else { alert('顺序已更新'); closeModal(); await loadData(); }
+            };
+        }
+        lineSelect.onchange = () => {
+            const line = lines.find(l => l.id == lineSelect.value);
+            if (line) { currentOrder = [...line.station_order]; renderOrder(currentOrder); }
+        };
+        lineSelect.dispatchEvent(new Event('change'));
+    }
+
+    async function addOperator() {
+        showModal('添加运营集团', `<label>集团名称</label><input id="opName">`, async () => {
+            const name = document.getElementById('opName').value.trim();
+            if (!name) { alert('请填写名称'); return; }
+            const { error } = await sb.from('operators').insert([{ name }]);
+            if (error) alert(error.message);
+            else { alert('添加成功'); closeModal(); await loadData(); }
+        });
+    }
+    async function deleteOperator() {
+        if (!operators.length) { alert('暂无集团'); return; }
+        showModal('删除运营集团', `<label>选择集团</label><select id="opSelect">${operators.map(op => `<option value="${op.id}">${op.name}</option>`).join('')}</select>`, async () => {
+            const id = document.getElementById('opSelect').value;
+            const used = lines.some(l => l.operator === operators.find(op => op.id == id)?.name);
+            if (used) { alert('该集团仍被线路使用，无法删除'); return; }
+            const { error } = await sb.from('operators').delete().eq('id', id);
+            if (error) alert(error.message);
+            else { alert('删除成功'); closeModal(); await loadData(); }
+        });
+    }
+
+    // 站外换乘管理
+    async function addTransfer() {
+        const stationOptions = stations.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+        showModal('添加站外换乘', `
+            <label>起点站点</label>
+            <select id="transferFrom">${stationOptions}</select>
+            <label>终点站点</label>
+            <select id="transferTo">${stationOptions}</select>
+            <label>步行距离（可选，默认根据坐标自动计算）</label>
+            <input type="number" id="transferWeight" step="0.1" placeholder="留空则自动计算">
+            <small>注意：两站之间可双向换乘，系统会自动处理。</small>
+        `, async () => {
+            const from = parseInt(document.getElementById('transferFrom').value);
+            const to = parseInt(document.getElementById('transferTo').value);
+            let weight = parseFloat(document.getElementById('transferWeight').value);
+            if (from === to) { alert('起点和终点不能相同'); return; }
+            // 检查是否已存在
+            const exists = transfers.some(t => (t.from_station === from && t.to_station === to) || (t.from_station === to && t.to_station === from));
+            if (exists) { alert('该换乘关系已存在'); return; }
+            if (isNaN(weight)) {
+                // 自动计算欧氏距离
+                const fromSt = stations.find(s => s.id === from);
+                const toSt = stations.find(s => s.id === to);
+                if (fromSt && toSt) {
+                    weight = Math.hypot(fromSt.x - toSt.x, fromSt.z - toSt.z);
+                } else {
+                    weight = 0;
+                }
+            }
+            const { error } = await sb.from('transfers').insert([{
+                from_station: from,
+                to_station: to,
+                weight: weight,
+                dimension: currentDimension
+            }]);
+            if (error) alert(error.message);
+            else { alert('添加成功'); closeModal(); await loadData(); }
+        });
+    }
+
+    async function deleteTransfer() {
+        if (!transfers.length) { alert('暂无换乘记录'); return; }
+        const stationOptions = stations.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+        showModal('删除站外换乘', `
+            <label>选择换乘关系</label>
+            <select id="transferSelect">${transfers.map(t => {
+                const from = stations.find(s => s.id === t.from_station);
+                const to = stations.find(s => s.id === t.to_station);
+                return `<option value="${t.id}">${from.name} ⇄ ${to.name}</option>`;
+            }).join('')}</select>
+        `, async () => {
+            const id = document.getElementById('transferSelect').value;
+            if (!confirm('确定删除该换乘关系吗？')) return;
+            const { error } = await sb.from('transfers').delete().eq('id', id);
+            if (error) alert(error.message);
+            else { alert('删除成功'); closeModal(); await loadData(); }
+        });
+    }
+
+    async function changeDimension() {
+        currentDimension = document.getElementById('dimensionSelect').value;
+        await loadData();
+    }
+
+    function jumpToCoordinate() {
+        let x = parseFloat(document.getElementById('jumpX').value);
+        let z = parseFloat(document.getElementById('jumpZ').value);
+        if (isNaN(x)) x = 0;
+        if (isNaN(z)) z = 0;
+        const container = document.getElementById('svgWrapper');
+        const rect = container.getBoundingClientRect();
+        const scaleX = viewBox.width / rect.width;
+        const scaleY = viewBox.height / rect.height;
+        viewBox.x = x - (rect.width / 2) * scaleX;
+        viewBox.y = z - (rect.height / 2) * scaleY;
+        updateViewBox();
+        renderMap();
+    }
+
+    function bindEvents() {
+        document.getElementById('planBtn').onclick = planRoute;
+        document.getElementById('refreshBtn').onclick = changeDimension;
+        document.getElementById('addStationBtn').onclick = addStation;
+        document.getElementById('editStationBtn').onclick = editStation;
+        document.getElementById('deleteStationBtn').onclick = deleteStation;
+        document.getElementById('addLineBtn').onclick = addLine;
+        document.getElementById('editLineBtn').onclick = editLine;
+        document.getElementById('deleteLineBtn').onclick = deleteLine;
+        document.getElementById('orderLineBtn').onclick = orderLine;
+        document.getElementById('addOperatorBtn').onclick = addOperator;
+        document.getElementById('deleteOperatorBtn').onclick = deleteOperator;
+        document.getElementById('addTransferBtn').onclick = addTransfer;
+        document.getElementById('deleteTransferBtn').onclick = deleteTransfer;
+        document.getElementById('jumpBtn').onclick = jumpToCoordinate;
+        document.getElementById('zoomInBtn').onclick = zoomIn;
+        document.getElementById('zoomOutBtn').onclick = zoomOut;
+        document.getElementById('resetViewBtn').onclick = resetView;
+
+        const gridCheck = document.getElementById('showGridCheckbox');
+        const axesCheck = document.getElementById('showAxesCheckbox');
+        gridCheck.addEventListener('change', (e) => {
+            showGrid = e.target.checked;
+            renderMap();
+        });
+        axesCheck.addEventListener('change', (e) => {
+            showAxes = e.target.checked;
+            renderMap();
+        });
+    }
+
+    async function init() {
+        initPanZoom();
+        tooltipDiv = document.createElement('div');
+        tooltipDiv.className = 'tooltip';
+        document.body.appendChild(tooltipDiv);
+        await loadData();
+        bindEvents();
+    }
+    init();
+</script>
+
+<script>
+  if ('serviceWorker' in navigator && window.isSecureContext && location.protocol.startsWith('http')) {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => console.log('SW registered:', reg))
+      .catch(err => console.error('SW registration failed:', err));
+  }
+</script>
+</body>
+</html>
