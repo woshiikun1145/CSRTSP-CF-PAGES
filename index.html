@@ -54,6 +54,8 @@
         .bp-item { display: flex; gap: 8px; align-items: center; margin: 6px 0; }
         .bp-item input { width: 70px; padding: 4px; }
         textarea { font-family: monospace; font-size: 12px; }
+        .operator-icon { width: 24px; height: 24px; display: inline-block; margin-right: 8px; vertical-align: middle; font-size: 20px; text-align: center; }
+        .operator-icon img { width: 100%; height: 100%; object-fit: contain; }
 
         @media (max-width: 768px) {
             .main { flex-direction: column; }
@@ -82,7 +84,8 @@
     <header>
         <h1>巧克力服铁路线路图 Chocolate Server Rail Transit System Plan</h1>
         <div style="font-size: 14px;">💡 所有人都可自由编辑，无需审核。为了延续这个规则，当你在编辑时，我们请求你不要随意修改<br>
-        ℹ️ 由于服务器铁路众多，我们希望你能够添加你所知道的铁路！</div>
+        ℹ️ 由于服务器铁路众多，我们希望你能够添加你所知道的铁路！<br>
+        ⚠️ 尚不完整支持手机端</div>
     </header>
     <div class="main">
         <div class="map-panel">
@@ -93,7 +96,7 @@
                     <option value="下界">下界</option>
                     <option value="末地">末地</option>
                     <option value="资源世界">资源世界</option>
-                    <option value="异次元">异次元</option>
+                    <option value="异次元">异次元之家</option>
                 </select>
                 <button id="refreshBtn">切换</button>
             </div>
@@ -117,7 +120,7 @@
                 <svg id="subwayMap" width="100%" height="100%"></svg>
             </div>
             <div class="map-controls">
-                <span>💡 鼠标滚轮缩放 | 拖拽平移 | 悬停查看详情 | by woshiikun_1145 | Version 2.0.0</span>
+                <span>💡 鼠标滚轮缩放 | 拖拽平移 | 悬停查看详情 | by woshiikun_1145 | Version 2.2.0</span>
             </div>
         </div>
         <div class="sidebar">
@@ -151,6 +154,7 @@
                 <div id="operatorListAdmin" class="item-list"></div>
                 <div style="margin-bottom:12px;">
                     <button id="addOperatorBtn">➕ 添加集团</button>
+                    <button id="editOperatorBtn">✏️ 编辑集团</button>
                     <button id="deleteOperatorBtn">🗑️ 删除集团</button>
                 </div>
                 <div class="section-title">🚶 站外换乘管理</div>
@@ -184,7 +188,7 @@
     let stations = [];
     let lines = [];
     let operators = [];
-    let transfers = [];      // 站外换乘列表
+    let transfers = [];
     let tooltipDiv = null;
     let svg = null;
     let viewBox = { x: 0, y: 0, width: 800, height: 600 };
@@ -333,68 +337,52 @@
     }
 
     function renderMap() {
-    if (!svg) svg = document.getElementById('subwayMap');
-    svg.innerHTML = '';
-    drawAuxiliaryElements();
+        if (!svg) svg = document.getElementById('subwayMap');
+        svg.innerHTML = '';
+        drawAuxiliaryElements();
 
-    if (!stations.length) return;
+        if (!stations.length) return;
 
-    let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
-    stations.forEach(s => {
-        minX = Math.min(minX, s.x);
-        maxX = Math.max(maxX, s.x);
-        minZ = Math.min(minZ, s.z);
-        maxZ = Math.max(maxZ, s.z);
-    });
-    const padding = 60;
-    const rangeX = maxX - minX || 1;
-    const rangeZ = maxZ - minZ || 1;
-    if (!viewBox.width || viewBox.width === 800) {
-        viewBox = {
-            x: minX - padding,
-            y: minZ - padding,
-            width: rangeX + 2 * padding,
-            height: rangeZ + 2 * padding
-        };
-        updateViewBox();
-    }
-
-    const linesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    const stationsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    const transfersGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-
-    // 收集所有线段（包含折点）
-    const segments = [];
-    lines.forEach(line => {
-        const order = line.station_order;
-        const breakpoints = line.breakpoints || [];
-        while (breakpoints.length < order.length - 1) breakpoints.push([]);
-        for (let i = 0; i < order.length - 1; i++) {
-            const from = stations.find(s => s.id === order[i]);
-            const to = stations.find(s => s.id === order[i+1]);
-            if (!from || !to) continue;
-            const points = [[from.x, from.z]];
-            const segBreak = breakpoints[i] || [];
-            for (const bp of segBreak) {
-                points.push([bp[0], bp[1]]);
-            }
-            points.push([to.x, to.z]);
-            const dash = line.type === '单轨铁路' ? '8 4' : (line.type === '蓝冰船' ? '2 6' : (line.type === '长距铁路' ? '' : ''));
-            const baseWidth = line.type === '长距铁路' ? 3 : 5;
-            segments.push({
-                points: points,
-                lineId: line.id,
-                lineColor: line.color,
-                dash: dash,
-                baseWidth: baseWidth
-            });
+        let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+        stations.forEach(s => {
+            minX = Math.min(minX, s.x);
+            maxX = Math.max(maxX, s.x);
+            minZ = Math.min(minZ, s.z);
+            maxZ = Math.max(maxZ, s.z);
+        });
+        const padding = 60;
+        const rangeX = maxX - minX || 1;
+        const rangeZ = maxZ - minZ || 1;
+        if (!viewBox.width || viewBox.width === 800) {
+            viewBox = {
+                x: minX - padding,
+                y: minZ - padding,
+                width: rangeX + 2 * padding,
+                height: rangeZ + 2 * padding
+            };
+            updateViewBox();
         }
-        // 环线首尾连接
-        if (line.is_loop && order.length >= 2) {
-            const first = stations.find(s => s.id === order[0]);
-            const last = stations.find(s => s.id === order[order.length - 1]);
-            if (first && last) {
-                const points = [[last.x, last.z], [first.x, first.z]];
+
+        const linesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        const stationsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        const transfersGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+
+        // 收集所有线段（包含折点）
+        const segments = [];
+        lines.forEach(line => {
+            const order = line.station_order;
+            const breakpoints = line.breakpoints || [];
+            while (breakpoints.length < order.length - 1) breakpoints.push([]);
+            for (let i = 0; i < order.length - 1; i++) {
+                const from = stations.find(s => s.id === order[i]);
+                const to = stations.find(s => s.id === order[i+1]);
+                if (!from || !to) continue;
+                const points = [[from.x, from.z]];
+                const segBreak = breakpoints[i] || [];
+                for (const bp of segBreak) {
+                    points.push([bp[0], bp[1]]);
+                }
+                points.push([to.x, to.z]);
                 const dash = line.type === '单轨铁路' ? '8 4' : (line.type === '蓝冰船' ? '2 6' : (line.type === '长距铁路' ? '' : ''));
                 const baseWidth = line.type === '长距铁路' ? 3 : 5;
                 segments.push({
@@ -405,124 +393,140 @@
                     baseWidth: baseWidth
                 });
             }
-        }
-    });
-
-    // 标准化线段并分组
-    const normalizedMap = new Map();
-    segments.forEach(seg => {
-        const points = seg.points;
-        if (points.length < 2) return;
-        const forward = points.map(p => `${p[0]},${p[1]}`).join('|');
-        const backward = points.slice().reverse().map(p => `${p[0]},${p[1]}`).join('|');
-        const key = forward < backward ? forward : backward;
-        if (!normalizedMap.has(key)) normalizedMap.set(key, []);
-        normalizedMap.get(key).push(seg);
-    });
-
-    // 绘制所有线段（考虑共线偏移）
-    normalizedMap.forEach(segGroup => {
-        const count = segGroup.length;
-        if (count === 1) {
-            const seg = segGroup[0];
-            const lineWidth = seg.baseWidth;
-            const polyline = drawPolyline(seg.points, seg.lineColor, lineWidth, seg.dash);
-            if (polyline) linesGroup.appendChild(polyline);
-        } else {
-            // 共线处理：偏移量步长 2px，每条线路线宽为原线宽 / count
-            const step = 2;
-            const offsets = [];
-            for (let i = 0; i < count; i++) {
-                offsets.push((i - (count-1)/2) * step);
-            }
-            segGroup.forEach((seg, idx) => {
-                const offset = offsets[idx];
-                const newPoints = [];
-                for (let i = 0; i < seg.points.length; i++) {
-                    const p = seg.points[i];
-                    let dir = [0,0];
-                    if (i === 0) {
-                        const next = seg.points[i+1];
-                        dir = [next[0] - p[0], next[1] - p[1]];
-                    } else if (i === seg.points.length - 1) {
-                        const prev = seg.points[i-1];
-                        dir = [p[0] - prev[0], p[1] - prev[1]];
-                    } else {
-                        const prev = seg.points[i-1];
-                        const next = seg.points[i+1];
-                        const dir1 = [p[0] - prev[0], p[1] - prev[1]];
-                        const dir2 = [next[0] - p[0], next[1] - p[1]];
-                        dir = [(dir1[0] + dir2[0])/2, (dir1[1] + dir2[1])/2];
-                    }
-                    const len = Math.hypot(dir[0], dir[1]);
-                    if (len < 1e-6) {
-                        newPoints.push([p[0], p[1]]);
-                        continue;
-                    }
-                    const perp = [-dir[1] / len, dir[0] / len];
-                    const dx = perp[0] * offset;
-                    const dy = perp[1] * offset;
-                    newPoints.push([p[0] + dx, p[1] + dy]);
+            // 环线首尾连接
+            if (line.is_loop && order.length >= 2) {
+                const first = stations.find(s => s.id === order[0]);
+                const last = stations.find(s => s.id === order[order.length - 1]);
+                if (first && last) {
+                    const points = [[last.x, last.z], [first.x, first.z]];
+                    const dash = line.type === '单轨铁路' ? '8 4' : (line.type === '蓝冰船' ? '2 6' : (line.type === '长距铁路' ? '' : ''));
+                    const baseWidth = line.type === '长距铁路' ? 3 : 5;
+                    segments.push({
+                        points: points,
+                        lineId: line.id,
+                        lineColor: line.color,
+                        dash: dash,
+                        baseWidth: baseWidth
+                    });
                 }
-                const lineWidth = Math.max(1, seg.baseWidth / count);
-                const polyline = drawPolyline(newPoints, seg.lineColor, lineWidth, seg.dash);
+            }
+        });
+
+        // 标准化线段并分组
+        const normalizedMap = new Map();
+        segments.forEach(seg => {
+            const points = seg.points;
+            if (points.length < 2) return;
+            const forward = points.map(p => `${p[0]},${p[1]}`).join('|');
+            const backward = points.slice().reverse().map(p => `${p[0]},${p[1]}`).join('|');
+            const key = forward < backward ? forward : backward;
+            if (!normalizedMap.has(key)) normalizedMap.set(key, []);
+            normalizedMap.get(key).push(seg);
+        });
+
+        // 绘制所有线段（考虑共线偏移）
+        normalizedMap.forEach(segGroup => {
+            const count = segGroup.length;
+            if (count === 1) {
+                const seg = segGroup[0];
+                const lineWidth = seg.baseWidth;
+                const polyline = drawPolyline(seg.points, seg.lineColor, lineWidth, seg.dash);
                 if (polyline) linesGroup.appendChild(polyline);
+            } else {
+                // 共线处理：偏移量步长 2px，每条线路线宽为原线宽 / count
+                const step = 2;
+                const offsets = [];
+                for (let i = 0; i < count; i++) {
+                    offsets.push((i - (count-1)/2) * step);
+                }
+                segGroup.forEach((seg, idx) => {
+                    const offset = offsets[idx];
+                    const newPoints = [];
+                    for (let i = 0; i < seg.points.length; i++) {
+                        const p = seg.points[i];
+                        let dir = [0,0];
+                        if (i === 0) {
+                            const next = seg.points[i+1];
+                            dir = [next[0] - p[0], next[1] - p[1]];
+                        } else if (i === seg.points.length - 1) {
+                            const prev = seg.points[i-1];
+                            dir = [p[0] - prev[0], p[1] - prev[1]];
+                        } else {
+                            const prev = seg.points[i-1];
+                            const next = seg.points[i+1];
+                            const dir1 = [p[0] - prev[0], p[1] - prev[1]];
+                            const dir2 = [next[0] - p[0], next[1] - p[1]];
+                            dir = [(dir1[0] + dir2[0])/2, (dir1[1] + dir2[1])/2];
+                        }
+                        const len = Math.hypot(dir[0], dir[1]);
+                        if (len < 1e-6) {
+                            newPoints.push([p[0], p[1]]);
+                            continue;
+                        }
+                        const perp = [-dir[1] / len, dir[0] / len];
+                        const dx = perp[0] * offset;
+                        const dy = perp[1] * offset;
+                        newPoints.push([p[0] + dx, p[1] + dy]);
+                    }
+                    const lineWidth = Math.max(1, seg.baseWidth / count);
+                    const polyline = drawPolyline(newPoints, seg.lineColor, lineWidth, seg.dash);
+                    if (polyline) linesGroup.appendChild(polyline);
+                });
+            }
+        });
+
+        // 绘制站外换乘（浅灰色虚线）
+        transfers.forEach(transfer => {
+            const from = stations.find(s => s.id === transfer.from_station);
+            const to = stations.find(s => s.id === transfer.to_station);
+            if (from && to) {
+                const points = [[from.x, from.z], [to.x, to.z]];
+                const dash = '4 4';
+                const lineWidth = '2';
+                const polyline = drawPolyline(points, '#aaa', lineWidth, dash);
+                if (polyline) transfersGroup.appendChild(polyline);
+            }
+        });
+
+        // 绘制站点（保持不变）
+        stations.forEach(station => {
+            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            circle.setAttribute('cx', station.x);
+            circle.setAttribute('cy', station.z);
+            circle.setAttribute('r', '6');
+            circle.setAttribute('fill', 'white');
+            circle.setAttribute('stroke', '#2c3e66');
+            circle.setAttribute('stroke-width', '2');
+            circle.style.cursor = 'pointer';
+            circle.addEventListener('mouseenter', (e) => {
+                const linesThrough = lines.filter(line => line.station_order.includes(station.id));
+                const linesInfo = linesThrough.map(l => `${l.name} (${l.type}, ${l.operator || '未知集团'})`).join(', ');
+                tooltipDiv.innerHTML = `🚉 ${station.name}<br>坐标: X=${station.x}, Z=${station.z}<br>🔄 途经线路: ${linesInfo || '无'}`;
+                tooltipDiv.style.left = (e.pageX + 12) + 'px';
+                tooltipDiv.style.top = (e.pageY - 30) + 'px';
+                tooltipDiv.style.display = 'block';
             });
-        }
-    });
-
-    // 绘制站外换乘（浅灰色虚线）
-    transfers.forEach(transfer => {
-        const from = stations.find(s => s.id === transfer.from_station);
-        const to = stations.find(s => s.id === transfer.to_station);
-        if (from && to) {
-            const points = [[from.x, from.z], [to.x, to.z]];
-            const dash = '4 4';
-            const lineWidth = '2';
-            const polyline = drawPolyline(points, '#aaa', lineWidth, dash);
-            if (polyline) transfersGroup.appendChild(polyline);
-        }
-    });
-
-    // 绘制站点（保持不变）
-    stations.forEach(station => {
-        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        circle.setAttribute('cx', station.x);
-        circle.setAttribute('cy', station.z);
-        circle.setAttribute('r', '6');
-        circle.setAttribute('fill', 'white');
-        circle.setAttribute('stroke', '#2c3e66');
-        circle.setAttribute('stroke-width', '2');
-        circle.style.cursor = 'pointer';
-        circle.addEventListener('mouseenter', (e) => {
-            const linesThrough = lines.filter(line => line.station_order.includes(station.id));
-            const linesInfo = linesThrough.map(l => `${l.name} (${l.type}, ${l.operator || '未知集团'})`).join(', ');
-            tooltipDiv.innerHTML = `🚉 ${station.name}<br>坐标: X=${station.x}, Z=${station.z}<br>🔄 途经线路: ${linesInfo || '无'}`;
-            tooltipDiv.style.left = (e.pageX + 12) + 'px';
-            tooltipDiv.style.top = (e.pageY - 30) + 'px';
-            tooltipDiv.style.display = 'block';
+            circle.addEventListener('mousemove', (e) => {
+                tooltipDiv.style.left = (e.pageX + 12) + 'px';
+                tooltipDiv.style.top = (e.pageY - 30) + 'px';
+            });
+            circle.addEventListener('mouseleave', () => { tooltipDiv.style.display = 'none'; });
+            stationsGroup.appendChild(circle);
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', station.x + 8);
+            text.setAttribute('y', station.z - 4);
+            text.setAttribute('font-size', '12');
+            text.setAttribute('fill', '#1e3c72');
+            text.setAttribute('stroke', 'white');
+            text.setAttribute('stroke-width', '0.5');
+            text.textContent = station.name;
+            stationsGroup.appendChild(text);
         });
-        circle.addEventListener('mousemove', (e) => {
-            tooltipDiv.style.left = (e.pageX + 12) + 'px';
-            tooltipDiv.style.top = (e.pageY - 30) + 'px';
-        });
-        circle.addEventListener('mouseleave', () => { tooltipDiv.style.display = 'none'; });
-        stationsGroup.appendChild(circle);
-        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        text.setAttribute('x', station.x + 8);
-        text.setAttribute('y', station.z - 4);
-        text.setAttribute('font-size', '12');
-        text.setAttribute('fill', '#1e3c72');
-        text.setAttribute('stroke', 'white');
-        text.setAttribute('stroke-width', '0.5');
-        text.textContent = station.name;
-        stationsGroup.appendChild(text);
-    });
 
-    svg.appendChild(transfersGroup);
-    svg.appendChild(linesGroup);
-    svg.appendChild(stationsGroup);
-}
+        svg.appendChild(transfersGroup);
+        svg.appendChild(linesGroup);
+        svg.appendChild(stationsGroup);
+    }
 
     function zoomIn() {
         const container = document.getElementById('svgWrapper');
@@ -815,7 +819,8 @@
         operators.forEach(op => {
             const div = document.createElement('div');
             div.className = 'operator-item';
-            div.innerHTML = `<strong>${op.name}</strong><span>ID: ${op.id}</span>`;
+            const iconHtml = op.icon ? (op.icon.startsWith('http') ? `<img src="${op.icon}" class="operator-icon" alt="icon">` : `<span class="operator-icon">${op.icon}</span>`) : '<span class="operator-icon" style="opacity:0.3;"> </span>';
+            div.innerHTML = `<div>${iconHtml}<strong>${op.name}</strong></div><span>ID: ${op.id}</span>`;
             operatorDiv.appendChild(div);
         });
         const transferDiv = document.getElementById('transferListAdmin');
@@ -1184,15 +1189,52 @@
         lineSelect.dispatchEvent(new Event('change'));
     }
 
+    // 运营集团管理
     async function addOperator() {
-        showModal('添加运营集团', `<label>集团名称</label><input id="opName">`, async () => {
+        showModal('添加运营集团', `
+            <label>集团名称</label><input id="opName">
+            <label>集团图标</label>
+            <input id="opIcon" placeholder="Emoji 或 图片URL（例如 🚇 或 https://...）">
+            <small>支持 Emoji 或 图片链接</small>
+        `, async () => {
             const name = document.getElementById('opName').value.trim();
+            const icon = document.getElementById('opIcon').value.trim();
             if (!name) { alert('请填写名称'); return; }
-            const { error } = await sb.from('operators').insert([{ name }]);
+            const { error } = await sb.from('operators').insert([{ name, icon: icon || null }]);
             if (error) alert(error.message);
             else { alert('添加成功'); closeModal(); await loadData(); }
         });
     }
+
+    async function editOperator() {
+        if (!operators.length) { alert('暂无集团'); return; }
+        const operatorOptions = operators.map(op => `<option value="${op.id}">${op.name}</option>`).join('');
+        showModal('编辑运营集团', `
+            <label>选择集团</label>
+            <select id="editOpSelect">${operatorOptions}</select>
+            <label>新名称</label><input id="newOpName" placeholder="请输入新名称">
+            <label>新图标</label><input id="newOpIcon" placeholder="Emoji 或 图片URL">
+            <small>留空则不修改图标，输入空字符串可清除图标。</small>
+        `, async () => {
+            const id = document.getElementById('editOpSelect').value;
+            const newName = document.getElementById('newOpName').value.trim();
+            const newIcon = document.getElementById('newOpIcon').value.trim();
+            const oldOp = operators.find(op => op.id == id);
+            if (!oldOp) { alert('未找到该集团'); return; }
+            const updateData = {};
+            if (newName) updateData.name = newName;
+            if (newIcon !== undefined) updateData.icon = newIcon === '' ? null : newIcon;
+            if (Object.keys(updateData).length === 0) { alert('请至少修改一项'); return; }
+            // 如果修改了名称，同步更新线路中的 operator 字段
+            if (newName) {
+                await sb.from('lines').update({ operator: newName }).eq('operator', oldOp.name);
+            }
+            const { error } = await sb.from('operators').update(updateData).eq('id', id);
+            if (error) alert(error.message);
+            else { alert('修改成功'); closeModal(); await loadData(); }
+        });
+    }
+
     async function deleteOperator() {
         if (!operators.length) { alert('暂无集团'); return; }
         showModal('删除运营集团', `<label>选择集团</label><select id="opSelect">${operators.map(op => `<option value="${op.id}">${op.name}</option>`).join('')}</select>`, async () => {
@@ -1295,6 +1337,7 @@
         document.getElementById('deleteLineBtn').onclick = deleteLine;
         document.getElementById('orderLineBtn').onclick = orderLine;
         document.getElementById('addOperatorBtn').onclick = addOperator;
+        document.getElementById('editOperatorBtn').onclick = editOperator;
         document.getElementById('deleteOperatorBtn').onclick = deleteOperator;
         document.getElementById('addTransferBtn').onclick = addTransfer;
         document.getElementById('deleteTransferBtn').onclick = deleteTransfer;
