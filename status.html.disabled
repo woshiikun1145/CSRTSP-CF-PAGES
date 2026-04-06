@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🍫 巧克力服铁路图 - 状态监控</title>
+    <script src="https://cdn.jsdelivr.net/npm/js-sha256/dist/sha256.min.js"></script>
+    <style>
+        :root {
+            --success: #4caf50;
+            --warning: #ff9800;
+            --critical: #f44336;
+            --maintenance: #9c27b0;
+            --bg: #1a1a1a;
+            --card: #2d2d2d;
+            --text: #ffffff;
+        }
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 1px solid #444;
+            margin-bottom: 40px;
+        }
+        h1 {
+            color: #ffcc00;
+            margin: 0;
+        }
+        .status-card {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            border-left: 6px solid var(--warning);
+            transition: all 0.3s ease;
+        }
+        .status-card.success { border-left-color: var(--success); }
+        .status-card.critical { border-left-color: var(--critical); }
+        .status-card.maintenance { border-left-color: var(--maintenance); }
+
+        .status-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .indicator-success { background: var(--success); }
+        .indicator-warning { background: var(--warning); }
+        .indicator-critical { background: var(--critical); }
+        .indicator-maintenance { background: var(--maintenance); }
+
+        .timestamp {
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 20px;
+            font-size: 0.95rem;
+        }
+        .metric {
+            background: #444;
+            padding: 12px;
+            border-radius: 8px;
+        }
+        .metric-label {
+            color: #ccc;
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+        }
+
+        /* 管理面板样式 */
+        .admin-panel {
+            background: #222;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #555;
+        }
+        h3 {
+            margin-top: 0;
+            color: #ffcc00;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #ccc;
+        }
+        input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            background: #444;
+            border: 1px solid #666;
+            border-radius: 8px;
+            color: white;
+            font-size: 1rem;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .btn-check {
+            background: var(--warning);
+            color: #000;
+        }
+        .btn-maintenance {
+            background: var(--maintenance);
+            color: white;
+        }
+        .btn-reset {
+            background: var(--success);
+            color: white;
+        }
+        .btn-danger {
+            background: var(--critical);
+            color: white;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            color: #777;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🍫 巧克力服铁路图状态页</h1>
+            <p>实时监控服务可用性与性能</p>
+        </header>
+
+        <main>
+            <!-- 服务状态卡片 -->
+            <div id="statusCard" class="status-card">
+                <div class="status-header">
+                    <h2>铁路图服务 <span class="status-indicator indicator-warning" id="statusDot"></span> <span id="statusText">检测中...</span></h2>
+                    <span class="timestamp" id="updateTime">--:--:--</span>
+                </div>
+                <p id="statusDesc">正在初始化连接测试...</p>
+                
+                <div class="metrics" id="metricsContainer">
+                    <div class="metric">
+                        <div class="metric-label">当前状态</div>
+                        <div id="statusValue">未知</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">响应延迟</div>
+                        <div id="latencyValue">-- ms</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">数据版本</div>
+                        <div id="dataVersion">--</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">最后检查</div>
+                        <div id="lastCheck">从未</div>
+                    </div>
+                </div>
+            </div>
+
+<!-- 管理员强制修改面板 -->
+<div class="admin-panel">
+    <h3>🛡️ 管理员控制台</h3>
+    
+    <!-- 修复：使用 form 包裹，添加 autocomplete -->
+    <form autocomplete="off" onsubmit="event.preventDefault(); return false;">
+        <div class="form-group">
+            <label for="adminPass">输入维护密码以强制修改状态：</label>
+            <!-- 修复：添加 autocomplete="new-password" -->
+            <input type="password" id="adminPass" placeholder="输入密码 Is1145@IKUN" autocomplete="new-password">
+        </div>
+    </form>
+
+    <div class="btn-group">
+        <button class="btn-check" onclick="checkConnection()">🔍 强制重连检测</button>
+        <button class="btn-maintenance" onclick="forceStatus('maintenance')" disabled id="btnMaintenance">🛠️ 设为维护中</button>
+        <button class="btn-danger" onclick="forceStatus('critical')" disabled id="btnCritical">🛑 设为服务中断</button>
+        <button class="btn-reset" onclick="forceStatus('success')" disabled id="btnReset">✅ 恢复正常</button>
+    </div>
+</div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>巧克力服状态监控系统 | 2026</p>
+        </footer>
+    </div>
+
+    <script>
+        // 配置
+        const API_URL = '/index.html'; // 检测目标，建议指向一个轻量的API端点或html
+        const CORRECT_HASH = 'a448e35346e3c82469882480c86c4288341c32b84a95a16217b55bb583727891'; // 预计算的 Is1145@IKUN 的 SHA256
+        let currentForcedState = null;
+
+        // DOM元素缓存
+        const statusCard = document.getElementById('statusCard');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const statusDesc = document.getElementById('statusDesc');
+        const updateTime = document.getElementById('updateTime');
+
+        // 密码验证逻辑
+        document.getElementById('adminPass').addEventListener('input', function(e) {
+            const inputHash = sha256(e.target.value);
+            const buttons = [document.getElementById('btnMaintenance'), 
+                           document.getElementById('btnCritical'), 
+                           document.getElementById('btnReset')];
+            
+            if (inputHash === CORRECT_HASH) {
+                buttons.forEach(btn => btn.disabled = false);
+                statusDesc.textContent = "密码验证通过！你可以强制修改状态。";
+            } else {
+                buttons.forEach(btn => btn.disabled = true);
+            }
+        });
+
+        // 检测逻辑
+        async function checkConnection() {
+            const start = performance.now();
+            let result;
+
+            // 如果有强制状态，优先显示
+            if (currentForcedState) {
+                updateUI(currentForcedState, 0, "管理员强制状态");
+                return;
+            }
+
+            try {
+                // 尝试获取页面头部信息，设置 5秒 超时
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+                const response = await fetch(API_URL + '?t=' + Date.now(), { 
+                    method: 'HEAD', 
+                    cache: 'no-cache',
+                    signal: controller.signal 
+                });
+                clearTimeout(timeoutId);
+
+                const duration = performance.now() - start;
+
+                if (response.ok) {
+                    // 检查 Supabase 连接状态 (可选增强检测)
+                    // 这里简单通过 HTTP 状态码判断
+                    if (duration < 2000) {
+                        result = { status: 'success', latency: duration, msg: '服务正常运行' };
+                    } else {
+                        result = { status: 'warning', latency: duration, msg: '响应缓慢，请检查网络拥堵' };
+                    }
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                console.warn('检测失败:', error);
+                result = { status: 'critical', latency: -1, msg: '无法连接到服务器，请检查服务进程' };
+            }
+
+            updateUI(result.status, result.latency, result.msg);
+        }
+
+        // UI更新逻辑
+        function updateUI(status, latency, message) {
+            const now = new Date();
+            updateTime.textContent = now.toLocaleTimeString();
+
+            switch(status) {
+                case 'success':
+                    statusCard.className = 'status-card success';
+                    statusDot.className = 'status-indicator indicator-success';
+                    statusText.textContent = '正常运行';
+                    statusDesc.textContent = message;
+                    break;
+                case 'warning':
+                    statusCard.className = 'status-card';
+                    statusDot.className = 'status-indicator indicator-warning';
+                    statusText.textContent = '性能下降';
+                    statusDesc.textContent = message;
+                    break;
+                case 'critical':
+                    statusCard.className = 'status-card critical';
+                    statusDot.className = 'status-indicator indicator-critical';
+                    statusText.textContent = '服务中断';
+                    statusDesc.textContent = message;
+                    break;
+                case 'maintenance':
+                    statusCard.className = 'status-card maintenance';
+                    statusDot.className = 'status-indicator indicator-maintenance';
+                    statusText.textContent = '计划维护';
+                    statusDesc.textContent = message;
+                    break;
+            }
+
+            // 更新指标
+            document.getElementById('statusValue').textContent = statusText.textContent;
+            document.getElementById('latencyValue').textContent = latency > 0 ? `${latency.toFixed(0)} ms` : 'N/A';
+            document.getElementById('lastCheck').textContent = now.toLocaleTimeString();
+        }
+
+        // 强制修改状态
+        function forceStatus(type) {
+            const confirmMsg = {
+                'maintenance': "确定要将服务标记为【计划维护】吗？",
+                'critical': "确定要将服务标记为【服务中断】吗？",
+                'success': "确定要清除强制状态并恢复【自动检测】吗？"
+            };
+
+            if (!confirm(confirmMsg[type])) return;
+
+            if (type === 'success') {
+                currentForcedState = null;
+                checkConnection(); // 恢复自动检测
+            } else {
+                currentForcedState = type;
+                let msg = "管理员手动触发的状态变更";
+                if (type === 'maintenance') msg = "系统正在进行后台维护，请稍后访问";
+                if (type === 'critical') msg = "管理员已标记此服务为离线状态";
+                updateUI(type, 0, msg);
+            }
+        }
+
+        // 页面加载完成后启动
+        (function init() {
+            checkConnection(); // 立即执行一次检测
+            setInterval(checkConnection, 30000); // 每30秒自动检测一次
+        })();
+    </script>
+</body>
+</html>
