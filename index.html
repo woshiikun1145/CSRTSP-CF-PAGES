@@ -11,6 +11,7 @@
     <link rel="apple-touch-icon" href="/icon-192.png">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        /* 样式与之前相同，保持不变 */
         * { box-sizing: border-box; font-family: system-ui, 'Segoe UI', 'Microsoft YaHei', sans-serif; }
         body { margin: 0; background: #f0f2f5; padding: 20px; overflow: hidden; height: 100vh; }
         .container { max-width: 1400px; margin: 0 auto; background: white; border-radius: 24px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); display: flex; flex-direction: column; height: calc(100vh - 40px); }
@@ -86,7 +87,7 @@
         <h1>巧克力服铁路线路图 <br>
             Chocolate Server Rail Transit System Plan</h1>
         <div style="font-size: 14px;">💡 所有人都可自由编辑，无需审核。<br>
-        ℹ️ 由于服务器铁路众多，我们希望你能够添加你所知道的铁路！<br>
+        ℹ️ 末地、异次元不支持跨维度铁路（只能内部线路）。<br>
         ⚠️ 尚不完整支持手机端和过旧的浏览器！</div>
     </header>
     <div class="main">
@@ -96,7 +97,9 @@
                 <select id="dimensionSelect">
                     <option value="主世界">主世界</option>
                     <option value="下界">下界</option>
+                    <option value="末地">末地</option>
                     <option value="资源世界">资源世界</option>
+                    <option value="异次元之家">异次元之家</option>
                 </select>
                 <button id="refreshBtn">切换</button>
             </div>
@@ -120,7 +123,7 @@
                 <svg id="subwayMap" width="100%" height="100%"></svg>
             </div>
             <div class="map-controls">
-                <span>💡 鼠标滚轮缩放 | 拖拽平移 | 悬停查看详情 | by woshiikun_1145 | 2.4.0</span>
+                <span>💡 鼠标滚轮缩放 | 拖拽平移 | 悬停查看详情 | by woshiikun_1145 | 2.4.3</span>
             </div>
         </div>
         <div class="sidebar">
@@ -198,6 +201,16 @@
 
     let showGrid = false;
     let showAxes = false;
+
+    // 维度列表（用于动态生成）
+    const DIMENSIONS = ['主世界', '下界', '末地', '资源世界', '异次元之家'];
+    // 允许跨维度传送的维度对（末地、异次元不能跨维度）
+    const CROSS_DIMENSION_ALLOWED = (from, to) => {
+        if (from === to) return false;
+        if (from === '末地' || to === '末地') return false;
+        if (from === '异次元之家' || to === '异次元之家') return false;
+        return true;
+    };
 
     function showModal(title, bodyHtml, onConfirm) {
         const modal = document.getElementById('modal');
@@ -509,13 +522,13 @@
             }
         });
 
-        // 绘制传送门方块（只显示当前维度作为起点的传送门）
+        // 绘制传送门方块（只显示当前维度作为起点的传送门，且仅当允许跨维度）
         lines.forEach(line => {
             const portals = line.portals || [];
             portals.forEach(portal => {
                 const order = line.station_order;
                 const fromStation = stations.find(s => s.id === order[portal.segment]);
-                if (fromStation && fromStation.dimension === currentDimension) {
+                if (fromStation && fromStation.dimension === currentDimension && CROSS_DIMENSION_ALLOWED(fromStation.dimension, portal.targetDim)) {
                     const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
                     const size = 14;
                     rect.setAttribute('x', portal.x - size/2);
@@ -726,7 +739,7 @@
 
     function updateViewBox() { svg.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`); }
 
-    // 路线规划（含环线和站外换乘）
+    // 路线规划（含环线和站外换乘，不考虑末地/异次元跨维度）
     async function planRoute() {
         const start = document.getElementById('startStation').value.trim();
         const end = document.getElementById('endStation').value.trim();
@@ -773,14 +786,24 @@
             const stationA = stations.find(s => s.id === a);
             const stationB = stations.find(s => s.id === b);
             if (stationA && stationB && stationA.dimension === stationB.dimension) {
-                // 使用存储的 weight，如果没有则用欧氏距离
                 const weight = transfer.weight !== undefined ? transfer.weight : Math.hypot(stationA.x - stationB.x, stationA.z - stationB.z);
                 addEdge(a, b, weight);
             }
         });
 
-        // 3. 传送门边（跨维度，零成本？但路线规划中暂不加入，因为跨维度需要手动跳转，不在同一图内）
-        // 为了简化，路线规划暂不考虑传送门（因为传送门目标坐标可能不是站点），用户可手动跳转后继续规划。
+        // 3. 跨维度传送门边（仅当允许跨维度）
+        lines.forEach(line => {
+            const portals = line.portals || [];
+            portals.forEach(portal => {
+                const order = line.station_order;
+                const fromStation = stations.find(s => s.id === order[portal.segment]);
+                const toStation = stations.find(s => s.id === order[portal.segment+1]); // 注意：传送门连接两个站点，但实际目标坐标可能不是站点，为简化，我们只处理站点间边
+                if (fromStation && toStation && fromStation.dimension !== toStation.dimension && CROSS_DIMENSION_ALLOWED(fromStation.dimension, toStation.dimension)) {
+                    // 传送门成本固定为 100（可配置）
+                    addEdge(fromStation.id, toStation.id, 100);
+                }
+            });
+        });
 
         const startStation = stations.find(s => s.name === start);
         const endStation = stations.find(s => s.name === end);
@@ -884,14 +907,11 @@
     }
 
     async function addStation() {
+        const dimOptions = DIMENSIONS.map(d => `<option value="${d}">${d}</option>`).join('');
         showModal('添加站点', `
             <label>站名</label><input id="staName">
             <label>维度</label>
-            <select id="staDimension">
-                <option value="主世界">主世界</option>
-                <option value="下界">下界</option>
-                <option value="资源世界">资源世界</option>
-            </select>
+            <select id="staDimension">${dimOptions}</select>
             <label>X坐标</label><input id="staX" value="0">
             <label>Z坐标</label><input id="staZ" value="0">
         `, async () => {
@@ -909,6 +929,7 @@
     async function editStation() {
         if (!stations.length) { alert('暂无站点'); return; }
         const stationOptions = stations.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+        const dimOptions = DIMENSIONS.map(d => `<option value="${d}">${d}</option>`).join('');
         showModal('编辑站点', `
             <label>选择站点</label>
             <select id="staId">${stationOptions}</select>
@@ -916,11 +937,7 @@
             <label>新X坐标</label><input id="staX">
             <label>新Z坐标</label><input id="staZ">
             <label>新维度</label>
-            <select id="staDimension">
-                <option value="主世界">主世界</option>
-                <option value="下界">下界</option>
-                <option value="资源世界">资源世界</option>
-            </select>
+            <select id="staDimension">${dimOptions}</select>
         `, async () => {
             const id = document.getElementById('staId').value;
             const name = document.getElementById('staName').value;
@@ -957,7 +974,6 @@
                     await sb.from('lines').update({ station_order: newOrder }).eq('id', line.id);
                 }
             }
-            // 删除与该站点相关的换乘
             await sb.from('transfers').delete().or(`from_station.eq.${id},to_station.eq.${id}`);
             const { error } = await sb.from('stations').delete().eq('id', id);
             if (error) alert(error.message);
@@ -965,7 +981,7 @@
         });
     }
 
-    // 折点编辑器函数（与之前相同）
+    // 折点编辑器函数（与之前相同，略）
     function renderBreakpointsEditor(selectedStationIds, existingBreakpoints) {
         const segments = [];
         for (let i = 0; i < selectedStationIds.length - 1; i++) {
@@ -1049,27 +1065,37 @@
         const safeOperators = Array.isArray(operators) ? operators : [];
         const stationOptions = safeStations.map(s => `<option value="${s.id}">${s.name} (${s.dimension})</option>`).join('');
         const operatorOptions = safeOperators.map(op => `<option value="${op.name}">${op.name}</option>`).join('');
+        const dimOptions = DIMENSIONS.map(d => `<option value="${d}">${d}</option>`).join('');
         showModal('添加线路', `
             <label>线路名称</label><input id="lineName">
             <label>线路类型</label><select id="lineType">${lineTypes.map(t => `<option value="${t}">${t}</option>`).join('')}</select>
             <label>线路颜色</label><input type="color" id="lineColor" value="#888888">
             <label>运营集团</label><select id="operator"><option value="">无</option>${operatorOptions}</select>
+            <label>线路所属维度</label>
+            <select id="lineDimension">${dimOptions}</select>
             <label><input type="checkbox" id="isLoopCheckbox"> 环线（首尾相连）</label>
             <label>站点顺序 (按住Ctrl多选，按顺序点击选择)</label>
             <select id="stationOrderSelect" multiple size="6">${stationOptions}</select>
             <div id="breakpointsEditorArea"></div>
             <div id="portalsEditorArea"></div>
-            <small>提示：折点用于弯曲线路，传送门仅在不同维度线段上可用。</small>
+            <small>提示：折点用于弯曲线路，传送门仅在不同维度线段上可用（末地、异次元除外）。</small>
         `, async () => {
             const name = document.getElementById('lineName').value;
             const type = document.getElementById('lineType').value;
             const color = document.getElementById('lineColor').value;
             const operator = document.getElementById('operator').value;
+            const dimension = document.getElementById('lineDimension').value;
             const isLoop = document.getElementById('isLoopCheckbox').checked;
             const selected = Array.from(document.getElementById('stationOrderSelect').selectedOptions);
             const station_order = selected.map(opt => parseInt(opt.value));
             if (!name || !type || !color) { alert('请填写完整'); return; }
             if (station_order.length < 2) { alert('至少选择两个站点'); return; }
+            // 检查站点维度一致性
+            const stationsInLine = station_order.map(id => safeStations.find(s => s.id === id));
+            if (stationsInLine.some(s => s.dimension !== dimension)) {
+                alert('所选站点必须与线路维度一致');
+                return;
+            }
             const breakpoints = collectBreakpointsFromEditor(station_order);
             const portals = [];
             for (let i = 0; i < station_order.length - 1; i++) {
@@ -1081,7 +1107,7 @@
             }
             const { error } = await sb.from('lines').insert([{
                 name, station_order, type, color, operator,
-                is_loop: isLoop,
+                dimension, is_loop: isLoop,
                 breakpoints: breakpoints,
                 portals: portals
             }]);
@@ -1107,7 +1133,7 @@
                 for (let i = 0; i < ids.length - 1; i++) {
                     const from = stationsInOrder[i];
                     const to = stationsInOrder[i+1];
-                    if (from.dimension !== to.dimension) {
+                    if (from.dimension !== to.dimension && CROSS_DIMENSION_ALLOWED(from.dimension, to.dimension)) {
                         portalsHtml += `<div style="border:1px solid #ddd; border-radius:12px; padding:8px; margin:8px 0;">
                             <div class="segment-title">传送门 (跨维度) ${i+1}: ${from.name} (${from.dimension}) → ${to.name} (${to.dimension})</div>
                             <div id="portalsList_${i}"></div>
@@ -1115,14 +1141,14 @@
                             <input type="hidden" id="portalsData_${i}" value="[]">
                         </div>`;
                     } else {
-                        portalsHtml += `<div style="margin:8px 0; color:gray;">线段 ${i+1} 两端维度相同，无需传送门。</div>`;
+                        portalsHtml += `<div style="margin:8px 0; color:gray;">线段 ${i+1} 两端维度相同或不允许跨维度，无需传送门。</div>`;
                     }
                 }
                 portalsArea.innerHTML = portalsHtml;
                 for (let i = 0; i < ids.length - 1; i++) {
                     const from = stationsInOrder[i];
                     const to = stationsInOrder[i+1];
-                    if (from.dimension !== to.dimension) {
+                    if (from.dimension !== to.dimension && CROSS_DIMENSION_ALLOWED(from.dimension, to.dimension)) {
                         attachPortalEvents(i, from, to);
                     }
                 }
@@ -1160,10 +1186,15 @@
                     let targetX = midX, targetZ = midZ;
                     if (fromStation.dimension === '主世界') targetDim = '下界';
                     else if (fromStation.dimension === '下界') targetDim = '主世界';
+                    else if (fromStation.dimension === '资源世界') targetDim = '主世界'; // 资源世界只能传出到主世界
                     if ((fromStation.dimension === '主世界' && targetDim === '下界') ||
                         (fromStation.dimension === '下界' && targetDim === '主世界')) {
                         if (fromStation.dimension === '主世界') { targetX = midX / 8; targetZ = midZ / 8; }
                         else { targetX = midX * 8; targetZ = midZ * 8; }
+                    } else if (fromStation.dimension === '资源世界') {
+                        // 资源世界目标坐标需手动输入
+                        targetX = midX;
+                        targetZ = midZ;
                     }
                     const modalHtml = `
                         <label>传送门位置 X</label><input id="portalX" type="number" step="any" value="${midX}">
@@ -1187,6 +1218,10 @@
                         if (isNaN(x) || isNaN(z) || isNaN(tX) || isNaN(tZ)) { alert('坐标无效'); return; }
                         if (fromStation.dimension === '资源世界' && tDim === '资源世界') { alert('资源世界不能作为传送门目标'); return; }
                         if (fromStation.dimension !== '资源世界' && tDim === '资源世界') { alert('只有资源世界可以传出，不能传入资源世界'); return; }
+                        if (!CROSS_DIMENSION_ALLOWED(fromStation.dimension, tDim)) {
+                            alert('末地和异次元不允许跨维度传送');
+                            return;
+                        }
                         portals.push({ segment: segIndex, x, z, targetDim: tDim, targetX: tX, targetZ: tZ });
                         renderPortals();
                         closeModal();
@@ -1208,27 +1243,37 @@
         const safeOperators = Array.isArray(operators) ? operators : [];
         const stationOptions = safeStations.map(s => `<option value="${s.id}">${s.name} (${s.dimension})</option>`).join('');
         const operatorOptions = safeOperators.map(op => `<option value="${op.name}" ${line.operator===op.name ? 'selected' : ''}>${op.name}</option>`).join('');
+        const dimOptions = DIMENSIONS.map(d => `<option value="${d}" ${line.dimension===d ? 'selected' : ''}>${d}</option>`).join('');
         showModal('编辑线路', `
             <label>线路名称</label><input id="lineName" value="${line.name}">
             <label>线路类型</label><select id="lineType">${lineTypes.map(t => `<option value="${t}" ${line.type===t ? 'selected' : ''}>${t}</option>`).join('')}</select>
             <label>线路颜色</label><input type="color" id="lineColor" value="${line.color}">
             <label>运营集团</label><select id="operator"><option value="">无</option>${operatorOptions}</select>
+            <label>线路所属维度</label>
+            <select id="lineDimension">${dimOptions}</select>
             <label><input type="checkbox" id="isLoopCheckbox" ${line.is_loop ? 'checked' : ''}> 环线（首尾相连）</label>
             <label>站点顺序 (按住Ctrl多选，按顺序点击选择)</label>
             <select id="stationOrderSelect" multiple size="6">${stationOptions}</select>
             <div id="breakpointsEditorArea"></div>
             <div id="portalsEditorArea"></div>
-            <small>提示：折点用于弯曲线路，传送门仅在不同维度线段上可用。</small>
+            <small>提示：折点用于弯曲线路，传送门仅在不同维度线段上可用（末地、异次元除外）。</small>
         `, async () => {
             const name = document.getElementById('lineName').value;
             const type = document.getElementById('lineType').value;
             const color = document.getElementById('lineColor').value;
             const operator = document.getElementById('operator').value;
+            const dimension = document.getElementById('lineDimension').value;
             const isLoop = document.getElementById('isLoopCheckbox').checked;
             const selected = Array.from(document.getElementById('stationOrderSelect').selectedOptions);
             const station_order = selected.map(opt => parseInt(opt.value));
             if (!name || !type || !color) { alert('请填写完整'); return; }
             if (station_order.length < 2) { alert('至少选择两个站点'); return; }
+            // 检查站点维度一致性
+            const stationsInLine = station_order.map(id => safeStations.find(s => s.id === id));
+            if (stationsInLine.some(s => s.dimension !== dimension)) {
+                alert('所选站点必须与线路维度一致');
+                return;
+            }
             const breakpoints = collectBreakpointsFromEditor(station_order);
             const portals = [];
             for (let i = 0; i < station_order.length - 1; i++) {
@@ -1240,18 +1285,31 @@
             }
             const { error } = await sb.from('lines').update({
                 name, station_order, type, color, operator,
-                is_loop: isLoop,
+                dimension, is_loop: isLoop,
                 breakpoints: breakpoints,
                 portals: portals
             }).eq('id', lineId);
             if (error) alert(error.message);
             else { alert('编辑成功'); closeModal(); await loadData(); }
         });
+
         setTimeout(() => {
             const stationSelect = document.getElementById('stationOrderSelect');
-            for (let opt of stationSelect.options) {
-                if (line.station_order.includes(parseInt(opt.value))) opt.selected = true;
+            // 重新排序下拉框选项，使其与 line.station_order 一致
+            for (let opt of stationSelect.options) opt.selected = false;
+            const orderedOptions = [];
+            for (let id of line.station_order) {
+                const opt = Array.from(stationSelect.options).find(o => parseInt(o.value) === id);
+                if (opt) {
+                    opt.selected = true;
+                    orderedOptions.push(opt);
+                }
             }
+            stationSelect.innerHTML = '';
+            orderedOptions.forEach(opt => stationSelect.appendChild(opt));
+            const remaining = Array.from(stationSelect.options).filter(opt => !orderedOptions.includes(opt));
+            remaining.forEach(opt => stationSelect.appendChild(opt));
+
             const breakpointsArea = document.getElementById('breakpointsEditorArea');
             const portalsArea = document.getElementById('portalsEditorArea');
             function updateEditors() {
@@ -1269,23 +1327,23 @@
                 for (let i = 0; i < ids.length - 1; i++) {
                     const from = stationsInOrder[i];
                     const to = stationsInOrder[i+1];
-                    if (from.dimension !== to.dimension) {
+                    if (from.dimension !== to.dimension && CROSS_DIMENSION_ALLOWED(from.dimension, to.dimension)) {
                         const existingPortals = (line.portals || []).filter(p => p.segment === i);
                         portalsHtml += `<div style="border:1px solid #ddd; border-radius:12px; padding:8px; margin:8px 0;">
                             <div class="segment-title">传送门 (跨维度) ${i+1}: ${from.name} (${from.dimension}) → ${to.name} (${to.dimension})</div>
                             <div id="portalsList_${i}"></div>
                             <button type="button" class="small-btn addPortalBtn" data-seg="${i}">➕ 添加传送门</button>
-                            <input type="hidden" id="portalsData_${i}" value='${JSON.stringify(existingPortals)}'>
+                            <input type="hidden" id="portalsData_${i}" value='${JSON.stringify((line.portals || []).filter(p => p.segment === i))}'>
                         </div>`;
                     } else {
-                        portalsHtml += `<div style="margin:8px 0; color:gray;">线段 ${i+1} 两端维度相同，无需传送门。</div>`;
+                        portalsHtml += `<div style="margin:8px 0; color:gray;">线段 ${i+1} 两端维度相同或不允许跨维度，无需传送门。</div>`;
                     }
                 }
                 portalsArea.innerHTML = portalsHtml;
                 for (let i = 0; i < ids.length - 1; i++) {
                     const from = stationsInOrder[i];
                     const to = stationsInOrder[i+1];
-                    if (from.dimension !== to.dimension) {
+                    if (from.dimension !== to.dimension && CROSS_DIMENSION_ALLOWED(from.dimension, to.dimension)) {
                         attachPortalEvents(i, from, to);
                     }
                 }
@@ -1323,10 +1381,14 @@
                     let targetX = midX, targetZ = midZ;
                     if (fromStation.dimension === '主世界') targetDim = '下界';
                     else if (fromStation.dimension === '下界') targetDim = '主世界';
+                    else if (fromStation.dimension === '资源世界') targetDim = '主世界';
                     if ((fromStation.dimension === '主世界' && targetDim === '下界') ||
                         (fromStation.dimension === '下界' && targetDim === '主世界')) {
                         if (fromStation.dimension === '主世界') { targetX = midX / 8; targetZ = midZ / 8; }
                         else { targetX = midX * 8; targetZ = midZ * 8; }
+                    } else if (fromStation.dimension === '资源世界') {
+                        targetX = midX;
+                        targetZ = midZ;
                     }
                     const modalHtml = `
                         <label>传送门位置 X</label><input id="portalX" type="number" step="any" value="${midX}">
@@ -1349,6 +1411,10 @@
                         if (isNaN(x) || isNaN(z) || isNaN(tX) || isNaN(tZ)) { alert('坐标无效'); return; }
                         if (fromStation.dimension === '资源世界' && tDim === '资源世界') { alert('资源世界不能作为传送门目标'); return; }
                         if (fromStation.dimension !== '资源世界' && tDim === '资源世界') { alert('只有资源世界可以传出，不能传入资源世界'); return; }
+                        if (!CROSS_DIMENSION_ALLOWED(fromStation.dimension, tDim)) {
+                            alert('末地和异次元不允许跨维度传送');
+                            return;
+                        }
                         portals.push({ segment: segIndex, x, z, targetDim: tDim, targetX: tX, targetZ: tZ });
                         renderPortals();
                         closeModal();
@@ -1479,7 +1545,6 @@
         });
     }
 
-    // 站外换乘管理
     async function addTransfer() {
         const stationOptions = stations.map(s => `<option value="${s.id}">${s.name} (${s.dimension})</option>`).join('');
         showModal('添加站外换乘', `
