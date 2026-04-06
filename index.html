@@ -27,7 +27,7 @@
         .plan-form input, .admin-form input, .admin-form select { width: 100%; padding: 8px 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 20px; }
         .result { background: #e3f2fd; border-radius: 16px; padding: 12px; margin-top: 12px; font-size: 14px; }
         .item-list { max-height: 200px; overflow-y: auto; margin-bottom: 12px; border: 1px solid #e0e0e0; border-radius: 12px; padding: 4px; }
-        .station-item, .line-item, .operator-item { background: white; border-radius: 8px; padding: 6px 10px; margin-bottom: 6px; border: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center; }
+        .station-item, .line-item, .operator-item, .transfer-item { background: white; border-radius: 8px; padding: 6px 10px; margin-bottom: 6px; border: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center; }
         .small-btn { background: #e0e0e0; padding: 2px 8px; font-size: 11px; margin-left: 6px; }
         .danger { background: #f44336; color: white; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 2000; }
@@ -68,7 +68,7 @@
             .coord-input input { flex: 1; min-width: 70px; }
             .admin-form button { font-size: 12px; padding: 4px 8px; }
             .modal-content { width: 95%; max-width: 95%; padding: 16px; }
-            .station-item, .line-item, .operator-item { font-size: 12px; }
+            .station-item, .line-item, .operator-item, .transfer-item { font-size: 12px; }
             .tooltip { font-size: 11px; white-space: normal; max-width: 200px; }
         }
         #zoomInBtn, #zoomOutBtn, #resetViewBtn {
@@ -120,7 +120,7 @@
                 <svg id="subwayMap" width="100%" height="100%"></svg>
             </div>
             <div class="map-controls">
-                <span>💡 鼠标滚轮缩放 | 拖拽平移 | 悬停查看详情 | by woshiikun_1145 | 2.3.1</span>
+                <span>💡 鼠标滚轮缩放 | 拖拽平移 | 悬停查看详情 | by woshiikun_1145 | 2.4.0</span>
             </div>
         </div>
         <div class="sidebar">
@@ -157,6 +157,12 @@
                     <button id="editOperatorBtn">✏️ 编辑集团</button>
                     <button id="deleteOperatorBtn">🗑️ 删除集团</button>
                 </div>
+                <div class="section-title">🚶 站外换乘管理</div>
+                <div id="transferListAdmin" class="item-list"></div>
+                <div style="margin-bottom:12px;">
+                    <button id="addTransferBtn">➕ 添加换乘</button>
+                    <button id="deleteTransferBtn">🗑️ 删除换乘</button>
+                </div>
             </div>
         </div>
     </div>
@@ -182,6 +188,7 @@
     let stations = [];
     let lines = [];
     let operators = [];
+    let transfers = [];      // 站外换乘列表
     let tooltipDiv = null;
     let svg = null;
     let viewBox = { x: 0, y: 0, width: 800, height: 600 };
@@ -274,19 +281,24 @@
         stations = [];
         lines = [];
         operators = [];
+        transfers = [];
         if (svg) svg.innerHTML = '';
         const stationListAdmin = document.getElementById('stationListAdmin');
         if (stationListAdmin) stationListAdmin.innerHTML = '';
         const lineListAdmin = document.getElementById('lineListAdmin');
         if (lineListAdmin) lineListAdmin.innerHTML = '';
+        const transferListAdmin = document.getElementById('transferListAdmin');
+        if (transferListAdmin) transferListAdmin.innerHTML = '';
 
         const { data: stationsData, error: sErr } = await sb.from('stations').select('*');
         const { data: linesData, error: lErr } = await sb.from('lines').select('*');
         const { data: operatorsData, error: oErr } = await sb.from('operators').select('*');
+        const { data: transfersData, error: tErr } = await sb.from('transfers').select('*');
 
         if (!sErr) stations = stationsData || [];
         if (!lErr) lines = linesData || [];
         if (!oErr) operators = operatorsData || [];
+        if (!tErr) transfers = transfersData || [];
 
         updateStationDatalist();
         renderMap();
@@ -347,6 +359,7 @@
         const linesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         const stationsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         const portalsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        const transfersGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
 
         // 收集所有线段（包含折点和传送门），用于共线偏移
         const allSegments = [];
@@ -485,6 +498,17 @@
             }
         });
 
+        // 绘制站外换乘（浅灰色虚线，同维度）
+        transfers.forEach(transfer => {
+            const from = stations.find(s => s.id === transfer.from_station);
+            const to = stations.find(s => s.id === transfer.to_station);
+            if (from && to && from.dimension === currentDimension && to.dimension === currentDimension) {
+                const points = [[from.x, from.z], [to.x, to.z]];
+                const polyline = drawPolyline(points, '#aaa', 2, '4 4');
+                if (polyline) transfersGroup.appendChild(polyline);
+            }
+        });
+
         // 绘制传送门方块（只显示当前维度作为起点的传送门）
         lines.forEach(line => {
             const portals = line.portals || [];
@@ -556,6 +580,7 @@
             stationsGroup.appendChild(text);
         });
 
+        svg.appendChild(transfersGroup);
         svg.appendChild(portalsGroup);
         svg.appendChild(linesGroup);
         svg.appendChild(stationsGroup);
@@ -701,17 +726,22 @@
 
     function updateViewBox() { svg.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`); }
 
+    // 路线规划（含环线和站外换乘）
     async function planRoute() {
         const start = document.getElementById('startStation').value.trim();
         const end = document.getElementById('endStation').value.trim();
         if (!start || !end) { alert('请填写起点和终点'); return; }
+
         const graph = {};
+
         function addEdge(a, b, weight) {
             if (!graph[a]) graph[a] = [];
             if (!graph[b]) graph[b] = [];
             graph[a].push({ node: b, weight });
             graph[b].push({ node: a, weight });
         }
+
+        // 1. 铁路线路边
         lines.forEach(line => {
             const order = line.station_order;
             for (let i = 0; i < order.length - 1; i++) {
@@ -735,15 +765,34 @@
                 }
             }
         });
+
+        // 2. 站外换乘边
+        transfers.forEach(transfer => {
+            const a = transfer.from_station;
+            const b = transfer.to_station;
+            const stationA = stations.find(s => s.id === a);
+            const stationB = stations.find(s => s.id === b);
+            if (stationA && stationB && stationA.dimension === stationB.dimension) {
+                // 使用存储的 weight，如果没有则用欧氏距离
+                const weight = transfer.weight !== undefined ? transfer.weight : Math.hypot(stationA.x - stationB.x, stationA.z - stationB.z);
+                addEdge(a, b, weight);
+            }
+        });
+
+        // 3. 传送门边（跨维度，零成本？但路线规划中暂不加入，因为跨维度需要手动跳转，不在同一图内）
+        // 为了简化，路线规划暂不考虑传送门（因为传送门目标坐标可能不是站点），用户可手动跳转后继续规划。
+
         const startStation = stations.find(s => s.name === start);
         const endStation = stations.find(s => s.name === end);
         if (!startStation || !endStation) { alert('站点不存在'); return; }
+
         const dist = {};
         const prev = {};
         const visited = new Set();
         const nodes = stations.map(s => s.id);
         for (const node of nodes) dist[node] = Infinity;
         dist[startStation.id] = 0;
+
         while (true) {
             let minNode = null;
             let minDist = Infinity;
@@ -765,10 +814,12 @@
                 }
             }
         }
+
         if (dist[endStation.id] === Infinity) {
             document.getElementById('planResult').innerHTML = '<span style="color:red">❌ 未找到路径</span>';
             return;
         }
+
         const pathIds = [];
         let cur = endStation.id;
         while (cur !== undefined) {
@@ -811,6 +862,18 @@
             const iconHtml = op.icon ? (op.icon.startsWith('http') ? `<img src="${op.icon}" class="operator-icon" alt="icon">` : `<span class="operator-icon">${op.icon}</span>`) : '<span class="operator-icon" style="opacity:0.3;"> </span>';
             div.innerHTML = `<div>${iconHtml}<strong>${op.name}</strong></div><span>ID: ${op.id}</span>`;
             operatorDiv.appendChild(div);
+        });
+        const transferDiv = document.getElementById('transferListAdmin');
+        transferDiv.innerHTML = '';
+        transfers.forEach(t => {
+            const from = stations.find(s => s.id === t.from_station);
+            const to = stations.find(s => s.id === t.to_station);
+            if (from && to) {
+                const div = document.createElement('div');
+                div.className = 'transfer-item';
+                div.innerHTML = `<strong>${from.name} ⇄ ${to.name}</strong> <span style="font-size:12px;">步行距离: ${t.weight !== undefined ? t.weight.toFixed(1) : Math.hypot(from.x-to.x, from.z-to.z).toFixed(1)}</span>`;
+                transferDiv.appendChild(div);
+            }
         });
         document.querySelectorAll('.editLineBtn').forEach(btn => {
             btn.onclick = () => editLine(parseInt(btn.dataset.id));
@@ -894,15 +957,16 @@
                     await sb.from('lines').update({ station_order: newOrder }).eq('id', line.id);
                 }
             }
+            // 删除与该站点相关的换乘
+            await sb.from('transfers').delete().or(`from_station.eq.${id},to_station.eq.${id}`);
             const { error } = await sb.from('stations').delete().eq('id', id);
             if (error) alert(error.message);
             else { alert('删除成功'); closeModal(); await loadData(); }
         });
     }
 
-    // 折点编辑器（修复版）
+    // 折点编辑器函数（与之前相同）
     function renderBreakpointsEditor(selectedStationIds, existingBreakpoints) {
-        // existingBreakpoints 是一维数组，每个元素 { segment, x, z }
         const segments = [];
         for (let i = 0; i < selectedStationIds.length - 1; i++) {
             const from = stations.find(s => s.id === selectedStationIds[i]);
@@ -1415,6 +1479,62 @@
         });
     }
 
+    // 站外换乘管理
+    async function addTransfer() {
+        const stationOptions = stations.map(s => `<option value="${s.id}">${s.name} (${s.dimension})</option>`).join('');
+        showModal('添加站外换乘', `
+            <label>起点站点</label>
+            <select id="transferFrom">${stationOptions}</select>
+            <label>终点站点</label>
+            <select id="transferTo">${stationOptions}</select>
+            <label>步行距离（可选，默认根据坐标自动计算）</label>
+            <input type="number" id="transferWeight" step="0.1" placeholder="留空则自动计算">
+            <small>注意：两站之间可双向换乘，系统会自动处理。</small>
+        `, async () => {
+            const from = parseInt(document.getElementById('transferFrom').value);
+            const to = parseInt(document.getElementById('transferTo').value);
+            let weight = parseFloat(document.getElementById('transferWeight').value);
+            if (from === to) { alert('起点和终点不能相同'); return; }
+            const fromSt = stations.find(s => s.id === from);
+            const toSt = stations.find(s => s.id === to);
+            if (!fromSt || !toSt || fromSt.dimension !== toSt.dimension) {
+                alert('两个站点必须属于同一维度');
+                return;
+            }
+            const exists = transfers.some(t => (t.from_station === from && t.to_station === to) || (t.from_station === to && t.to_station === from));
+            if (exists) { alert('该换乘关系已存在'); return; }
+            if (isNaN(weight)) {
+                weight = Math.hypot(fromSt.x - toSt.x, fromSt.z - toSt.z);
+            }
+            const { error } = await sb.from('transfers').insert([{
+                from_station: from,
+                to_station: to,
+                weight: weight,
+                dimension: fromSt.dimension
+            }]);
+            if (error) alert(error.message);
+            else { alert('添加成功'); closeModal(); await loadData(); }
+        });
+    }
+
+    async function deleteTransfer() {
+        if (!transfers.length) { alert('暂无换乘记录'); return; }
+        showModal('删除站外换乘', `
+            <label>选择换乘关系</label>
+            <select id="transferSelect">${transfers.map(t => {
+                const from = stations.find(s => s.id === t.from_station);
+                const to = stations.find(s => s.id === t.to_station);
+                return `<option value="${t.id}">${from.name} ⇄ ${to.name}</option>`;
+            }).join('')}</select>
+        `, async () => {
+            const id = document.getElementById('transferSelect').value;
+            if (!confirm('确定删除该换乘关系吗？')) return;
+            const { error } = await sb.from('transfers').delete().eq('id', id);
+            if (error) alert(error.message);
+            else { alert('删除成功'); closeModal(); await loadData(); }
+        });
+    }
+
     async function changeDimension() {
         currentDimension = document.getElementById('dimensionSelect').value;
         await loadData();
@@ -1448,6 +1568,8 @@
         document.getElementById('addOperatorBtn').onclick = addOperator;
         document.getElementById('editOperatorBtn').onclick = editOperator;
         document.getElementById('deleteOperatorBtn').onclick = deleteOperator;
+        document.getElementById('addTransferBtn').onclick = addTransfer;
+        document.getElementById('deleteTransferBtn').onclick = deleteTransfer;
         document.getElementById('jumpBtn').onclick = jumpToCoordinate;
         document.getElementById('zoomInBtn').onclick = zoomIn;
         document.getElementById('zoomOutBtn').onclick = zoomOut;
