@@ -87,7 +87,7 @@
         <h1>巧克力服铁路线路图 <br>
             Chocolate Server Rail Transit System Plan</h1>
         <div style="font-size: 14px;">💡 所有人都可自由编辑，无需审核。<br>
-        ℹ️ 末地、异次元不支持跨维度铁路（只能内部线路）。<br>
+        ℹ️ 由于服务器铁路众多，我们希望你能够添加你所知道的铁路！<br>
         ⚠️ 尚不完整支持手机端和过旧的浏览器！</div>
     </header>
     <div class="main">
@@ -123,7 +123,7 @@
                 <svg id="subwayMap" width="100%" height="100%"></svg>
             </div>
             <div class="map-controls">
-                <span>💡 鼠标滚轮缩放 | 拖拽平移 | 悬停查看详情 | by woshiikun_1145 | 2.4.3</span>
+                <span>💡 鼠标滚轮缩放 | 拖拽平移 | 悬停查看详情 | by woshiikun_1145 | 2.4.4</span>
             </div>
         </div>
         <div class="sidebar">
@@ -1236,197 +1236,204 @@
     }
 
     async function editLine(lineId) {
-        const line = lines.find(l => l.id === lineId);
-        if (!line) return;
-        const lineTypes = ['单轨铁路', '双轨铁路', '蓝冰船', '长距铁路'];
-        const safeStations = Array.isArray(stations) ? stations : [];
-        const safeOperators = Array.isArray(operators) ? operators : [];
-        const stationOptions = safeStations.map(s => `<option value="${s.id}">${s.name} (${s.dimension})</option>`).join('');
-        const operatorOptions = safeOperators.map(op => `<option value="${op.name}" ${line.operator===op.name ? 'selected' : ''}>${op.name}</option>`).join('');
-        const dimOptions = DIMENSIONS.map(d => `<option value="${d}" ${line.dimension===d ? 'selected' : ''}>${d}</option>`).join('');
-        showModal('编辑线路', `
-            <label>线路名称</label><input id="lineName" value="${line.name}">
-            <label>线路类型</label><select id="lineType">${lineTypes.map(t => `<option value="${t}" ${line.type===t ? 'selected' : ''}>${t}</option>`).join('')}</select>
-            <label>线路颜色</label><input type="color" id="lineColor" value="${line.color}">
-            <label>运营集团</label><select id="operator"><option value="">无</option>${operatorOptions}</select>
-            <label>线路所属维度</label>
-            <select id="lineDimension">${dimOptions}</select>
-            <label><input type="checkbox" id="isLoopCheckbox" ${line.is_loop ? 'checked' : ''}> 环线（首尾相连）</label>
-            <label>站点顺序 (按住Ctrl多选，按顺序点击选择)</label>
-            <select id="stationOrderSelect" multiple size="6">${stationOptions}</select>
-            <div id="breakpointsEditorArea"></div>
-            <div id="portalsEditorArea"></div>
-            <small>提示：折点用于弯曲线路，传送门仅在不同维度线段上可用（末地、异次元除外）。</small>
-        `, async () => {
-            const name = document.getElementById('lineName').value;
-            const type = document.getElementById('lineType').value;
-            const color = document.getElementById('lineColor').value;
-            const operator = document.getElementById('operator').value;
-            const dimension = document.getElementById('lineDimension').value;
-            const isLoop = document.getElementById('isLoopCheckbox').checked;
-            const selected = Array.from(document.getElementById('stationOrderSelect').selectedOptions);
-            const station_order = selected.map(opt => parseInt(opt.value));
-            if (!name || !type || !color) { alert('请填写完整'); return; }
-            if (station_order.length < 2) { alert('至少选择两个站点'); return; }
-            // 检查站点维度一致性
-            const stationsInLine = station_order.map(id => safeStations.find(s => s.id === id));
-            if (stationsInLine.some(s => s.dimension !== dimension)) {
-                alert('所选站点必须与线路维度一致');
+    const line = lines.find(l => l.id === lineId);
+    if (!line) return;
+    const lineTypes = ['单轨铁路', '双轨铁路', '蓝冰船', '长距铁路'];
+    const safeStations = Array.isArray(stations) ? stations : [];
+    const safeOperators = Array.isArray(operators) ? operators : [];
+    // 显示所有站点（而不是仅当前线路的站点）
+    const stationOptions = safeStations.map(s => `<option value="${s.id}">${s.name} (${s.dimension})</option>`).join('');
+    const operatorOptions = safeOperators.map(op => `<option value="${op.name}" ${line.operator===op.name ? 'selected' : ''}>${op.name}</option>`).join('');
+    const dimOptions = DIMENSIONS.map(d => `<option value="${d}" ${line.dimension===d ? 'selected' : ''}>${d}</option>`).join('');
+    
+    showModal('编辑线路', `
+        <label>线路名称</label><input id="lineName" value="${line.name}">
+        <label>线路类型</label><select id="lineType">${lineTypes.map(t => `<option value="${t}" ${line.type===t ? 'selected' : ''}>${t}</option>`).join('')}</select>
+        <label>线路颜色</label><input type="color" id="lineColor" value="${line.color}">
+        <label>运营集团</label><select id="operator"><option value="">无</option>${operatorOptions}</select>
+        <label>线路所属维度</label>
+        <select id="lineDimension">${dimOptions}</select>
+        <label><input type="checkbox" id="isLoopCheckbox" ${line.is_loop ? 'checked' : ''}> 环线（首尾相连）</label>
+        <label>站点顺序 (按住Ctrl多选，按顺序点击选择，可增删站点)</label>
+        <select id="stationOrderSelect" multiple size="6">${stationOptions}</select>
+        <div id="breakpointsEditorArea"></div>
+        <div id="portalsEditorArea"></div>
+        <small>提示：折点用于弯曲线路，传送门仅在不同维度线段上可用（末地、异次元除外）。</small>
+    `, async () => {
+        const name = document.getElementById('lineName').value;
+        const type = document.getElementById('lineType').value;
+        const color = document.getElementById('lineColor').value;
+        const operator = document.getElementById('operator').value;
+        const dimension = document.getElementById('lineDimension').value;
+        const isLoop = document.getElementById('isLoopCheckbox').checked;
+        const selected = Array.from(document.getElementById('stationOrderSelect').selectedOptions);
+        const station_order = selected.map(opt => parseInt(opt.value));
+        if (!name || !type || !color) { alert('请填写完整'); return; }
+        if (station_order.length < 2) { alert('至少选择两个站点'); return; }
+        // 检查站点维度一致性
+        const stationsInLine = station_order.map(id => safeStations.find(s => s.id === id));
+        if (stationsInLine.some(s => s.dimension !== dimension)) {
+            alert('所选站点必须与线路维度一致');
+            return;
+        }
+        const breakpoints = collectBreakpointsFromEditor(station_order);
+        const portals = [];
+        for (let i = 0; i < station_order.length - 1; i++) {
+            const portalsData = document.getElementById(`portalsData_${i}`)?.value;
+            if (portalsData) {
+                const segPortals = JSON.parse(portalsData);
+                portals.push(...segPortals);
+            }
+        }
+        const { error } = await sb.from('lines').update({
+            name, station_order, type, color, operator,
+            dimension, is_loop: isLoop,
+            breakpoints: breakpoints,
+            portals: portals
+        }).eq('id', lineId);
+        if (error) alert(error.message);
+        else { alert('编辑成功'); closeModal(); await loadData(); }
+    });
+
+    // 在模态框显示后，预选当前线路的站点，并绑定事件
+    setTimeout(() => {
+        const stationSelect = document.getElementById('stationOrderSelect');
+        // 清除所有选中
+        for (let opt of stationSelect.options) opt.selected = false;
+        // 选中当前线路的站点
+        for (let id of line.station_order) {
+            const opt = Array.from(stationSelect.options).find(o => parseInt(o.value) === id);
+            if (opt) opt.selected = true;
+        }
+        // 重新排序下拉框，使选中的站点按线路顺序排列（便于用户查看）
+        const selectedOpts = Array.from(stationSelect.options).filter(opt => opt.selected);
+        const unselectedOpts = Array.from(stationSelect.options).filter(opt => !opt.selected);
+        const orderedSelected = [];
+        for (let id of line.station_order) {
+            const opt = selectedOpts.find(o => parseInt(o.value) === id);
+            if (opt) orderedSelected.push(opt);
+        }
+        stationSelect.innerHTML = '';
+        orderedSelected.forEach(opt => stationSelect.appendChild(opt));
+        unselectedOpts.forEach(opt => stationSelect.appendChild(opt));
+
+        const breakpointsArea = document.getElementById('breakpointsEditorArea');
+        const portalsArea = document.getElementById('portalsEditorArea');
+        function updateEditors() {
+            const selected = Array.from(stationSelect.selectedOptions);
+            const ids = selected.map(opt => parseInt(opt.value));
+            if (ids.length < 2) {
+                breakpointsArea.innerHTML = '<div style="color:gray;">选择至少两个站点以添加折点</div>';
+                portalsArea.innerHTML = '';
                 return;
             }
-            const breakpoints = collectBreakpointsFromEditor(station_order);
-            const portals = [];
-            for (let i = 0; i < station_order.length - 1; i++) {
-                const portalsData = document.getElementById(`portalsData_${i}`)?.value;
-                if (portalsData) {
-                    const segPortals = JSON.parse(portalsData);
-                    portals.push(...segPortals);
+            const stationsInOrder = ids.map(id => safeStations.find(s => s.id === id));
+            breakpointsArea.innerHTML = renderBreakpointsEditor(ids, line.breakpoints || []);
+            bindBreakpointsEvents(ids);
+            let portalsHtml = '';
+            for (let i = 0; i < ids.length - 1; i++) {
+                const from = stationsInOrder[i];
+                const to = stationsInOrder[i+1];
+                if (from.dimension !== to.dimension && CROSS_DIMENSION_ALLOWED(from.dimension, to.dimension)) {
+                    const existingPortals = (line.portals || []).filter(p => p.segment === i);
+                    portalsHtml += `<div style="border:1px solid #ddd; border-radius:12px; padding:8px; margin:8px 0;">
+                        <div class="segment-title">传送门 (跨维度) ${i+1}: ${from.name} (${from.dimension}) → ${to.name} (${to.dimension})</div>
+                        <div id="portalsList_${i}"></div>
+                        <button type="button" class="small-btn addPortalBtn" data-seg="${i}">➕ 添加传送门</button>
+                        <input type="hidden" id="portalsData_${i}" value='${JSON.stringify(existingPortals)}'>
+                    </div>`;
+                } else {
+                    portalsHtml += `<div style="margin:8px 0; color:gray;">线段 ${i+1} 两端维度相同或不允许跨维度，无需传送门。</div>`;
                 }
             }
-            const { error } = await sb.from('lines').update({
-                name, station_order, type, color, operator,
-                dimension, is_loop: isLoop,
-                breakpoints: breakpoints,
-                portals: portals
-            }).eq('id', lineId);
-            if (error) alert(error.message);
-            else { alert('编辑成功'); closeModal(); await loadData(); }
-        });
-
-        setTimeout(() => {
-            const stationSelect = document.getElementById('stationOrderSelect');
-            // 重新排序下拉框选项，使其与 line.station_order 一致
-            for (let opt of stationSelect.options) opt.selected = false;
-            const orderedOptions = [];
-            for (let id of line.station_order) {
-                const opt = Array.from(stationSelect.options).find(o => parseInt(o.value) === id);
-                if (opt) {
-                    opt.selected = true;
-                    orderedOptions.push(opt);
+            portalsArea.innerHTML = portalsHtml;
+            for (let i = 0; i < ids.length - 1; i++) {
+                const from = stationsInOrder[i];
+                const to = stationsInOrder[i+1];
+                if (from.dimension !== to.dimension && CROSS_DIMENSION_ALLOWED(from.dimension, to.dimension)) {
+                    attachPortalEvents(i, from, to);
                 }
             }
-            stationSelect.innerHTML = '';
-            orderedOptions.forEach(opt => stationSelect.appendChild(opt));
-            const remaining = Array.from(stationSelect.options).filter(opt => !orderedOptions.includes(opt));
-            remaining.forEach(opt => stationSelect.appendChild(opt));
-
-            const breakpointsArea = document.getElementById('breakpointsEditorArea');
-            const portalsArea = document.getElementById('portalsEditorArea');
-            function updateEditors() {
-                const selected = Array.from(stationSelect.selectedOptions);
-                const ids = selected.map(opt => parseInt(opt.value));
-                if (ids.length < 2) {
-                    breakpointsArea.innerHTML = '<div style="color:gray;">选择至少两个站点以添加折点</div>';
-                    portalsArea.innerHTML = '';
-                    return;
-                }
-                const stationsInOrder = ids.map(id => safeStations.find(s => s.id === id));
-                breakpointsArea.innerHTML = renderBreakpointsEditor(ids, line.breakpoints || []);
-                bindBreakpointsEvents(ids);
-                let portalsHtml = '';
-                for (let i = 0; i < ids.length - 1; i++) {
-                    const from = stationsInOrder[i];
-                    const to = stationsInOrder[i+1];
-                    if (from.dimension !== to.dimension && CROSS_DIMENSION_ALLOWED(from.dimension, to.dimension)) {
-                        const existingPortals = (line.portals || []).filter(p => p.segment === i);
-                        portalsHtml += `<div style="border:1px solid #ddd; border-radius:12px; padding:8px; margin:8px 0;">
-                            <div class="segment-title">传送门 (跨维度) ${i+1}: ${from.name} (${from.dimension}) → ${to.name} (${to.dimension})</div>
-                            <div id="portalsList_${i}"></div>
-                            <button type="button" class="small-btn addPortalBtn" data-seg="${i}">➕ 添加传送门</button>
-                            <input type="hidden" id="portalsData_${i}" value='${JSON.stringify((line.portals || []).filter(p => p.segment === i))}'>
-                        </div>`;
-                    } else {
-                        portalsHtml += `<div style="margin:8px 0; color:gray;">线段 ${i+1} 两端维度相同或不允许跨维度，无需传送门。</div>`;
-                    }
-                }
-                portalsArea.innerHTML = portalsHtml;
-                for (let i = 0; i < ids.length - 1; i++) {
-                    const from = stationsInOrder[i];
-                    const to = stationsInOrder[i+1];
-                    if (from.dimension !== to.dimension && CROSS_DIMENSION_ALLOWED(from.dimension, to.dimension)) {
-                        attachPortalEvents(i, from, to);
-                    }
-                }
-            }
-            function attachPortalEvents(segIndex, fromStation, toStation) {
-                const container = document.getElementById(`portalsList_${segIndex}`);
-                const hiddenInput = document.getElementById(`portalsData_${segIndex}`);
-                let portals = JSON.parse(hiddenInput.value);
-                function renderPortals() {
-                    container.innerHTML = '';
-                    portals.forEach((p, idx) => {
-                        const div = document.createElement('div');
-                        div.className = 'bp-item';
-                        div.innerHTML = `
-                            <span>位置: X=${p.x.toFixed(1)}, Z=${p.z.toFixed(1)}</span>
-                            <span>目标维度: ${p.targetDim}</span>
-                            <span>目标坐标: (${p.targetX.toFixed(1)}, ${p.targetZ.toFixed(1)})</span>
-                            <button class="small-btn removePortalBtn" data-idx="${idx}">删除</button>
-                        `;
-                        container.appendChild(div);
-                    });
-                    hiddenInput.value = JSON.stringify(portals);
-                    document.querySelectorAll('.removePortalBtn').forEach(btn => {
-                        btn.onclick = () => {
-                            const idx = parseInt(btn.dataset.idx);
-                            portals.splice(idx, 1);
-                            renderPortals();
-                        };
-                    });
-                }
-                function addPortal() {
-                    const midX = (fromStation.x + toStation.x) / 2;
-                    const midZ = (fromStation.z + toStation.z) / 2;
-                    let targetDim = '主世界';
-                    let targetX = midX, targetZ = midZ;
-                    if (fromStation.dimension === '主世界') targetDim = '下界';
-                    else if (fromStation.dimension === '下界') targetDim = '主世界';
-                    else if (fromStation.dimension === '资源世界') targetDim = '主世界';
-                    if ((fromStation.dimension === '主世界' && targetDim === '下界') ||
-                        (fromStation.dimension === '下界' && targetDim === '主世界')) {
-                        if (fromStation.dimension === '主世界') { targetX = midX / 8; targetZ = midZ / 8; }
-                        else { targetX = midX * 8; targetZ = midZ * 8; }
-                    } else if (fromStation.dimension === '资源世界') {
-                        targetX = midX;
-                        targetZ = midZ;
-                    }
-                    const modalHtml = `
-                        <label>传送门位置 X</label><input id="portalX" type="number" step="any" value="${midX}">
-                        <label>传送门位置 Z</label><input id="portalZ" type="number" step="any" value="${midZ}">
-                        <label>目标维度</label>
-                        <select id="targetDim">
-                            <option value="主世界" ${targetDim==='主世界'?'selected':''}>主世界</option>
-                            <option value="下界" ${targetDim==='下界'?'selected':''}>下界</option>
-                            <option value="资源世界" ${targetDim==='资源世界'?'selected':''}>资源世界</option>
-                        </select>
-                        <label>目标坐标 X</label><input id="targetX" type="number" step="any" value="${targetX}">
-                        <label>目标坐标 Z</label><input id="targetZ" type="number" step="any" value="${targetZ}">
+        }
+        function attachPortalEvents(segIndex, fromStation, toStation) {
+            const container = document.getElementById(`portalsList_${segIndex}`);
+            const hiddenInput = document.getElementById(`portalsData_${segIndex}`);
+            let portals = JSON.parse(hiddenInput.value);
+            function renderPortals() {
+                container.innerHTML = '';
+                portals.forEach((p, idx) => {
+                    const div = document.createElement('div');
+                    div.className = 'bp-item';
+                    div.innerHTML = `
+                        <span>位置: X=${p.x.toFixed(1)}, Z=${p.z.toFixed(1)}</span>
+                        <span>目标维度: ${p.targetDim}</span>
+                        <span>目标坐标: (${p.targetX.toFixed(1)}, ${p.targetZ.toFixed(1)})</span>
+                        <button class="small-btn removePortalBtn" data-idx="${idx}">删除</button>
                     `;
-                    showModal('添加传送门', modalHtml, () => {
-                        const x = parseFloat(document.getElementById('portalX').value);
-                        const z = parseFloat(document.getElementById('portalZ').value);
-                        const tDim = document.getElementById('targetDim').value;
-                        let tX = parseFloat(document.getElementById('targetX').value);
-                        let tZ = parseFloat(document.getElementById('targetZ').value);
-                        if (isNaN(x) || isNaN(z) || isNaN(tX) || isNaN(tZ)) { alert('坐标无效'); return; }
-                        if (fromStation.dimension === '资源世界' && tDim === '资源世界') { alert('资源世界不能作为传送门目标'); return; }
-                        if (fromStation.dimension !== '资源世界' && tDim === '资源世界') { alert('只有资源世界可以传出，不能传入资源世界'); return; }
-                        if (!CROSS_DIMENSION_ALLOWED(fromStation.dimension, tDim)) {
-                            alert('末地和异次元不允许跨维度传送');
-                            return;
-                        }
-                        portals.push({ segment: segIndex, x, z, targetDim: tDim, targetX: tX, targetZ: tZ });
+                    container.appendChild(div);
+                });
+                hiddenInput.value = JSON.stringify(portals);
+                document.querySelectorAll('.removePortalBtn').forEach(btn => {
+                    btn.onclick = () => {
+                        const idx = parseInt(btn.dataset.idx);
+                        portals.splice(idx, 1);
                         renderPortals();
-                        closeModal();
-                    });
-                }
-                document.querySelector(`.addPortalBtn[data-seg="${segIndex}"]`).onclick = addPortal;
-                renderPortals();
+                    };
+                });
             }
-            stationSelect.addEventListener('change', updateEditors);
-            updateEditors();
-        }, 50);
-    }
+            function addPortal() {
+                const midX = (fromStation.x + toStation.x) / 2;
+                const midZ = (fromStation.z + toStation.z) / 2;
+                let targetDim = '主世界';
+                let targetX = midX, targetZ = midZ;
+                if (fromStation.dimension === '主世界') targetDim = '下界';
+                else if (fromStation.dimension === '下界') targetDim = '主世界';
+                else if (fromStation.dimension === '资源世界') targetDim = '主世界';
+                if ((fromStation.dimension === '主世界' && targetDim === '下界') ||
+                    (fromStation.dimension === '下界' && targetDim === '主世界')) {
+                    if (fromStation.dimension === '主世界') { targetX = midX / 8; targetZ = midZ / 8; }
+                    else { targetX = midX * 8; targetZ = midZ * 8; }
+                } else if (fromStation.dimension === '资源世界') {
+                    targetX = midX;
+                    targetZ = midZ;
+                }
+                const modalHtml = `
+                    <label>传送门位置 X</label><input id="portalX" type="number" step="any" value="${midX}">
+                    <label>传送门位置 Z</label><input id="portalZ" type="number" step="any" value="${midZ}">
+                    <label>目标维度</label>
+                    <select id="targetDim">
+                        <option value="主世界" ${targetDim==='主世界'?'selected':''}>主世界</option>
+                        <option value="下界" ${targetDim==='下界'?'selected':''}>下界</option>
+                        <option value="资源世界" ${targetDim==='资源世界'?'selected':''}>资源世界</option>
+                    </select>
+                    <label>目标坐标 X</label><input id="targetX" type="number" step="any" value="${targetX}">
+                    <label>目标坐标 Z</label><input id="targetZ" type="number" step="any" value="${targetZ}">
+                `;
+                showModal('添加传送门', modalHtml, () => {
+                    const x = parseFloat(document.getElementById('portalX').value);
+                    const z = parseFloat(document.getElementById('portalZ').value);
+                    const tDim = document.getElementById('targetDim').value;
+                    let tX = parseFloat(document.getElementById('targetX').value);
+                    let tZ = parseFloat(document.getElementById('targetZ').value);
+                    if (isNaN(x) || isNaN(z) || isNaN(tX) || isNaN(tZ)) { alert('坐标无效'); return; }
+                    if (fromStation.dimension === '资源世界' && tDim === '资源世界') { alert('资源世界不能作为传送门目标'); return; }
+                    if (fromStation.dimension !== '资源世界' && tDim === '资源世界') { alert('只有资源世界可以传出，不能传入资源世界'); return; }
+                    if (!CROSS_DIMENSION_ALLOWED(fromStation.dimension, tDim)) {
+                        alert('末地和异次元不允许跨维度传送');
+                        return;
+                    }
+                    portals.push({ segment: segIndex, x, z, targetDim: tDim, targetX: tX, targetZ: tZ });
+                    renderPortals();
+                    closeModal();
+                });
+            }
+            document.querySelector(`.addPortalBtn[data-seg="${segIndex}"]`).onclick = addPortal;
+            renderPortals();
+        }
+        stationSelect.addEventListener('change', updateEditors);
+        updateEditors();
+    }, 50);
+}
 
     async function deleteLine(lineId) {
         if (!confirm('确定删除该线路吗？')) return;
