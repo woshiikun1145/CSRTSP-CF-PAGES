@@ -123,7 +123,7 @@
                 <svg id="subwayMap" width="100%" height="100%"></svg>
             </div>
             <div class="map-controls">
-                <span>💡 鼠标滚轮缩放 | 拖拽平移 | 悬停查看详情 | by woshiikun_1145 | 2.4.4</span>
+                <span>💡 鼠标滚轮缩放 | 拖拽平移 | 悬停查看详情 | by woshiikun_1145 | 2.5.0</span>
             </div>
         </div>
         <div class="sidebar">
@@ -882,7 +882,15 @@
         operators.forEach(op => {
             const div = document.createElement('div');
             div.className = 'operator-item';
-            const iconHtml = op.icon ? (op.icon.startsWith('http') ? `<img src="${op.icon}" class="operator-icon" alt="icon">` : `<span class="operator-icon">${op.icon}</span>`) : '<span class="operator-icon" style="opacity:0.3;"> </span>';
+            // 修改图标显示逻辑：支持 Base64 DataURL
+            let iconHtml = '<span class="operator-icon" style="opacity:0.3;"> </span>';
+            if (op.icon) {
+                if (op.icon.startsWith('http') || op.icon.startsWith('data:image')) {
+                    iconHtml = `<img src="${op.icon}" class="operator-icon" alt="icon">`;
+                } else {
+                    iconHtml = `<span class="operator-icon">${op.icon}</span>`;
+                }
+            }
             div.innerHTML = `<div>${iconHtml}<strong>${op.name}</strong></div><span>ID: ${op.id}</span>`;
             operatorDiv.appendChild(div);
         });
@@ -1502,7 +1510,8 @@
     async function addOperator() {
         showModal('添加运营集团', `
             <label>集团名称</label><input id="opName">
-            <label>集团图标</label><input id="opIcon" placeholder="Emoji 或 图片URL">
+            <label>集团图标</label><input id="opIcon" placeholder="Emoji、图片URL 或 Base64 DataURL（例如 data:image/png;base64,...）">
+            <small>支持 Emoji、图片URL 或 Base64 字符串。</small>
         `, async () => {
             const name = document.getElementById('opName').value.trim();
             const icon = document.getElementById('opIcon').value.trim();
@@ -1520,7 +1529,8 @@
             <label>选择集团</label>
             <select id="editOpSelect">${operatorOptions}</select>
             <label>新名称</label><input id="newOpName" placeholder="请输入新名称">
-            <label>新图标</label><input id="newOpIcon" placeholder="Emoji 或 图片URL">
+            <label>新图标</label><input id="newOpIcon" placeholder="Emoji、图片URL 或 Base64 DataURL">
+            <small>支持 Emoji、图片URL 或 Base64 字符串。</small>
         `, async () => {
             const id = document.getElementById('editOpSelect').value;
             const newName = document.getElementById('newOpName').value.trim();
