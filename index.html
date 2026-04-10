@@ -1,3 +1,31 @@
+<!-- 
+ 我直接就是拿那个筷子
+ 少羽NB666
+ 巨蟒牛逼666
+ 晨蕉NB666
+ 十一班NB666
+ 
+ 广告！
+    盐川制盐公司，100年历史，品牌值得信赖！
+    一吨盐巴只需1000颗苏尔南钻！
+
+ 把晏川心脏病吓出来
+ 盐巴以后靠骗装备赚钱
+ 
+ 班主任的话老爷们，
+ 你们这群畜生根本不配吃零食，
+ 资料我冒风险打印的，乱做不做我可以理解，但不改你们就是没有良心；
+ 补考的话要交两块，因为石油涨价了，
+ 嗯班会课的话，我们接着讲，
+ 我看你们真是越活越转去了，虽然这样说，那么现在我们就要再次说一下，所以说我们专门说一下不能穿鸳鸯鞋👟，
+ 再再次说一下不能把手机放在校门口，因为这样子很有可能把脑壳塞进肚皮里面，
+ 第一点首先上课睡觉可以，千万不要把脊椎骨睡断了，因为这样子你觉得很酷吗？
+ 还有够不够人性化？(......)够不够意思？(.....)你们够不够意思？(.....)，
+ 做人要讲良心，良心着狗吃了，刘老师是不是打的很准？每次都打在同一个地方，是不是很痛，
+ 第二点你几爷子开开心心放学不行，非得要骂你们几下才过得，说撒，继续说。
+ 
+ 
+-->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -7,77 +35,363 @@
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#ff9800">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="巧克力服铁路图">
+    <meta name="apple-mobile-web-app-title" content="巧克力服铁路线路图 Chocolate Server Rail Transit System Plan">
     <link rel="apple-touch-icon" href="/icon-192.png">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* 样式与之前相同，保持不变 */
-        * { box-sizing: border-box; font-family: system-ui, 'Segoe UI', 'Microsoft YaHei', sans-serif; }
-        body { margin: 0; background: #f0f2f5; padding: 20px; overflow: hidden; height: 100vh; }
-        .container { max-width: 1400px; margin: 0 auto; background: white; border-radius: 24px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); display: flex; flex-direction: column; height: calc(100vh - 40px); }
-        header { background: #1e3c72; color: white; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border-radius: 24px 24px 0 0; }
-        h1 { margin: 0; font-size: 1.6rem; }
-        .main { display: flex; flex: 1; min-height: 0; }
-        .map-panel { flex: 3; background: #e9ecef; padding: 20px; border-right: 1px solid #ddd; display: flex; flex-direction: column; overflow: hidden; }
-        .sidebar { flex: 1.2; min-width: 280px; padding: 20px; background: #fafbfc; overflow-y: auto; }
-        .svg-container { background: #fefefe; border-radius: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden; flex: 1; position: relative; cursor: grab; touch-action: none; }
-        .svg-container:active { cursor: grabbing; }
-        svg { width: 100%; height: 100%; display: block; }
-        .tooltip { position: fixed; background: rgba(0,0,0,0.85); color: white; padding: 8px 14px; border-radius: 12px; font-size: 13px; pointer-events: none; z-index: 1000; white-space: nowrap; backdrop-filter: blur(4px); }
-        .plan-form, .admin-form { background: white; border-radius: 20px; padding: 16px; margin-bottom: 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
-        .plan-form input, .admin-form input, .admin-form select { width: 100%; padding: 8px 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 20px; }
-        .result { background: #e3f2fd; border-radius: 16px; padding: 12px; margin-top: 12px; font-size: 14px; }
-        .item-list { max-height: 200px; overflow-y: auto; margin-bottom: 12px; border: 1px solid #e0e0e0; border-radius: 12px; padding: 4px; }
-        .station-item, .line-item, .operator-item, .transfer-item { background: white; border-radius: 8px; padding: 6px 10px; margin-bottom: 6px; border: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center; }
-        .small-btn { background: #e0e0e0; padding: 2px 8px; font-size: 11px; margin-left: 6px; }
-        .danger { background: #f44336; color: white; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 2000; }
-        .modal-content { background: white; padding: 24px; border-radius: 28px; width: 500px; max-width: 90%; max-height: 80vh; overflow-y: auto; }
-        .modal-content input, .modal-content select, .modal-content textarea { width: 100%; margin: 8px 0; padding: 8px; }
-        .close { float: right; cursor: pointer; font-size: 24px; }
-        .modal-footer { margin-top: 16px; text-align: right; }
-        .section-title { font-weight: bold; margin: 12px 0 8px; color: #1e3c72; }
-        .color-preview { width: 16px; height: 16px; display: inline-block; margin-right: 6px; border-radius: 2px; }
-        .map-controls { margin-top: 8px; display: flex; justify-content: space-between; align-items: center; }
-        .dimension-bar { background: #e0e7ff; padding: 8px 12px; border-radius: 40px; display: inline-flex; gap: 8px; align-items: center; margin-bottom: 12px; }
-        .dimension-bar select { padding: 4px 8px; border-radius: 20px; border: 1px solid #ccc; }
-        .aux-controls { background: #f8f9fa; border-radius: 12px; padding: 8px 12px; margin-bottom: 12px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
-        .aux-controls label { margin-left: 8px; margin-right: 12px; }
-        .coord-input { display: inline-flex; gap: 8px; align-items: center; }
-        .coord-input input { width: 80px; padding: 4px 8px; border-radius: 16px; border: 1px solid #ccc; }
-        #coordDisplay { background: #e9ecef; border-radius: 20px; padding: 4px 12px; font-size: 12px; }
-        .modal-content label { display: block; margin-bottom: 8px; }
-        .modal-content label input[type="checkbox"] { display: inline-block; width: auto; margin-right: 8px; vertical-align: middle; }
-        .modal-content label span { vertical-align: middle; }
-        .breakpoints-section { border: 1px solid #ddd; border-radius: 12px; padding: 8px; margin: 8px 0; background: #fafafa; }
-        .segment-title { font-weight: bold; margin: 8px 0 4px; font-size: 13px; color: #1e3c72; }
-        .bp-list { margin: 4px 0 8px 20px; }
-        .bp-item { display: flex; gap: 8px; align-items: center; margin: 6px 0; }
-        .bp-item input { width: 70px; padding: 4px; }
-        .operator-icon { width: 24px; height: 24px; display: inline-block; margin-right: 8px; vertical-align: middle; font-size: 20px; text-align: center; }
-        .operator-icon img { width: 100%; height: 100%; object-fit: contain; }
-        .portal-box { fill: rgba(255,255,255,0.9); stroke: #aa66ff; stroke-width: 2; cursor: pointer; }
-        .portal-box:hover { fill: #aa66ff; stroke: #fff; }
+        
+        * { 
+            box-sizing: border-box; font-family: sans-serif, system-ui; 
+        }
+        body { 
+            margin: 0; 
+            background: #f0f2f5;
+            padding: 20px;
+            overflow: hidden;
+            height: 100vh; 
+        }
+        .container { 
+            max-width: 1400px; 
+            margin: 0 auto; 
+            background: white; 
+            border-radius: 24px; 
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1); 
+            display: flex; 
+            flex-direction: column; 
+            height: calc(100vh - 40px); 
+        }
+        header { 
+            background: #1e3c72; 
+            color: white; padding: 16px 24px; 
+            display: flex; justify-content: space-between; 
+            align-items: center; 
+            border-radius: 24px 24px 0 0; 
+        }
+        h1 { margin: 0; 
+            font-size: 1.3rem; /* 主标题字体大小，h1 */
+        }
+        .main { 
+            display: flex;
+             flex: 1; 
+             min-height: 0; 
+            }
+        .map-panel { 
+            flex: 3; 
+            background: #e9ecef; 
+            padding: 20px; 
+            border-right: 1px solid #ddd; 
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
+        }
+        .sidebar { 
+            flex: 1.2; 
+            min-width: 280px; 
+            padding: 20px; 
+            background: #fafbfc; 
+            overflow-y: auto; }
+        .svg-container { 
+            background: #fefefe; 
+            border-radius: 20px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
+            overflow: hidden; 
+            flex: 1; 
+            position: relative; 
+            cursor: grab;
+             touch-action: none;
+            }
+        .svg-container:active { 
+            cursor: grabbing; 
+        }
+        svg { width: 100%; 
+            height: 100%; 
+            display: block; 
+        }
+        .tooltip { 
+            position: fixed; 
+            background: rgba(0,0,0,0.85); 
+            color: white; 
+            padding: 8px 14px; 
+            border-radius: 12px; 
+            font-size: 13px; 
+            pointer-events: none; 
+            z-index: 1000; 
+            white-space: nowrap; 
+            backdrop-filter: blur(4px); 
+        }
+        .plan-form, .admin-form { 
+            background: white; 
+            border-radius: 20px; 
+            padding: 16px; 
+            margin-bottom: 24px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08); 
+        }
+        .plan-form input, .admin-form input, .admin-form select { 
+            width: 100%; 
+            padding: 8px 12px;
+            margin: 8px 0; 
+            border: 1px solid #ccc; 
+            border-radius: 20px; 
+        }
+        .result { 
+            background: #e3f2fd;
+            border-radius: 16px; 
+            padding: 12px; 
+            margin-top: 12px; 
+            font-size: 14px; 
+        }
+        .item-list { 
+            max-height: 200px; 
+            overflow-y: auto; 
+            margin-bottom: 12px; 
+            border: 1px solid #e0e0e0; 
+            border-radius: 12px; 
+            padding: 4px; 
+        }
+        .station-item, .line-item, .operator-item, .transfer-item { 
+            background: white; 
+            border-radius: 8px; 
+            padding: 6px 10px; 
+            margin-bottom: 6px; 
+            border: 1px solid #e0e0e0; 
+            display: flex; 
+            justify-content: space-between;
+            align-items: center; 
+        }
+        .small-btn { 
+            background: #e0e0e0; 
+            padding: 2px 8px; 
+            font-size: 11px; 
+            margin-left: 6px; 
+        }
+        .danger { 
+            background: #f44336; 
+            color: white; 
+        }
+        .modal { 
+            display: none; 
+            position: fixed;
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0,0,0,0.5); 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 2000; 
+        }
+        .modal-content { 
+            background: white; 
+            padding: 24px; 
+            border-radius: 28px; 
+            width: 500px; 
+            max-width: 90%; 
+            max-height: 80vh; 
+            overflow-y: auto; 
+        }
+        .modal-content input, .modal-content select, .modal-content textarea { 
+            width: 100%; 
+            margin: 8px 0; 
+            padding: 8px; 
+        }
+        .close { 
+            float: right; 
+            cursor: pointer; 
+            font-size: 24px; 
+        }
+        .modal-footer {
+            margin-top: 16px; 
+            text-align: right; 
+        }
+        .section-title { 
+            font-weight: bold; 
+            margin: 12px 0 8px; 
+            color: #1e3c72; 
+        }
+        .color-preview { 
+            width: 16px; 
+            height: 16px; 
+            display: inline-block; 
+            margin-right: 6px; 
+            border-radius: 2px; 
+        }
+        .map-controls { 
+            margin-top: 8px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
+        .dimension-bar { 
+            background: #e0e7ff; 
+            padding: 8px 12px; 
+            border-radius: 40px; 
+            display: inline-flex; 
+            gap: 8px; 
+            align-items: center; 
+            margin-bottom: 12px; 
+        }
+        .dimension-bar select { padding: 4px 8px; 
+            border-radius: 20px; 
+            border: 1px solid #ccc; 
+        }
+        .aux-controls { background: #f8f9fa; 
+            border-radius: 12px; 
+            padding: 8px 12px; 
+            margin-bottom: 12px; 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 12px; 
+            align-items: center; 
+        }
+        .aux-controls label { 
+            margin-left: 8px; 
+            margin-right: 12px; 
+        }
+        .coord-input { 
+            display: inline-flex; 
+            gap: 8px; align-items: center; 
+        }
+        .coord-input input { 
+            width: 80px; 
+            padding: 4px 8px; 
+            border-radius: 16px; 
+            border: 1px solid #ccc; 
+        }
+        #coordDisplay { 
+            background: #e9ecef; 
+            border-radius: 20px; 
+            padding: 4px 12px; 
+            font-size: 12px; 
+        }
+        .modal-content label { 
+            display: block; 
+            margin-bottom: 8px; 
+        }
+        .modal-content label input[
+            type="checkbox"
+            ] 
+            { 
+                display: inline-block; 
+                width: auto; 
+                margin-right: 8px; 
+                vertical-align: middle; 
+            }
+        .modal-content label span { 
+            vertical-align: middle; 
+        }
+        .breakpoints-section { 
+            border: 1px solid #ddd; 
+            border-radius: 12px; 
+            padding: 8px; 
+            margin: 8px 0; 
+            background: #fafafa; 
+        }
+        .segment-title { 
+            font-weight: bold; 
+            margin: 8px 0 4px; 
+            font-size: 13px; 
+            color: #1e3c72; 
+        }
+        .bp-list { 
+            margin: 4px 0 8px 20px; 
+        }
+        .bp-item { 
+            display: flex; 
+            gap: 8px; 
+            align-items: center; 
+            margin: 6px 0; 
+        }
+        .bp-item input { 
+            width: 70px; 
+            padding: 4px; 
+        }
+        .operator-icon { 
+            width: 24px; 
+            height: 24px; 
+            display: inline-block; 
+            margin-right: 8px; 
+            vertical-align: middle; 
+            font-size: 20px; 
+            text-align: center; 
+        }
+        .operator-icon img {
+            width: 100%; 
+            height: 100%; 
+            object-fit: contain; 
+        }
+        .portal-box { 
+            fill: rgba(255,255,255,0.9); 
+            stroke: #aa66ff; 
+            stroke-width: 2; 
+            cursor: pointer; 
+        }
+        .portal-box:hover { 
+            fill: #aa66ff; 
+            stroke: #fff; 
+        }
 
         @media (max-width: 768px) {
-            .main { flex-direction: column; }
-            .map-panel { border-right: none; border-bottom: 1px solid #ddd; min-width: auto; height: 50vh; padding: 12px; }
-            .sidebar { min-width: auto; padding: 12px; max-height: 50vh; overflow-y: auto; }
-            .dimension-bar { flex-wrap: wrap; gap: 6px; }
-            .aux-controls { flex-wrap: wrap; gap: 8px; align-items: stretch; }
-            .coord-input { flex-wrap: wrap; width: 100%; }
-            .coord-input input { flex: 1; min-width: 70px; }
-            .admin-form button { font-size: 12px; padding: 4px 8px; }
-            .modal-content { width: 95%; max-width: 95%; padding: 16px; }
-            .station-item, .line-item, .operator-item, .transfer-item { font-size: 12px; }
-            .tooltip { font-size: 11px; white-space: normal; max-width: 200px; }
+            .main { 
+                flex-direction: column; 
+            }
+            .map-panel { 
+                border-right: none; 
+                border-bottom: 1px solid #ddd; 
+                min-width: auto; height: 50vh; 
+                padding: 12px; 
+            }
+            .sidebar { 
+                min-width: auto; 
+                padding: 12px; 
+                max-height: 50vh; 
+                overflow-y: auto; 
+            }
+            .dimension-bar { 
+                flex-wrap: wrap; 
+                gap: 6px; 
+            }
+            .aux-controls { 
+                flex-wrap: wrap; 
+                gap: 8px; 
+                align-items: stretch; 
+            }
+            .coord-input { 
+                flex-wrap: wrap; 
+                width: 100%; 
+            }
+            .coord-input input { 
+                flex: 1; 
+                min-width: 70px; 
+            }
+            .admin-form button { 
+                font-size: 12px; 
+                padding: 4px 8px; 
+            }
+            .modal-content { 
+                width: 95%; 
+                max-width: 95%; 
+                padding: 16px; 
+            }
+            .station-item, .line-item, .operator-item, .transfer-item { 
+                font-size: 12px; 
+            }
+            .tooltip { 
+                font-size: 11px; 
+                white-space: normal; 
+                max-width: 200px; 
+            }
         }
         #zoomInBtn, #zoomOutBtn, #resetViewBtn {
-            background: white; border: 1px solid #ccc; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-            cursor: pointer; user-select: none; touch-action: manipulation;
+            background: white; 
+            border: 1px solid #ccc; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            cursor: pointer; 
+            user-select: none; 
+            touch-action: manipulation;
         }
         #zoomInBtn:active, #zoomOutBtn:active, #resetViewBtn:active {
-            background: #f0f0f0; transform: scale(0.96);
+            background: #f0f0f0; 
+            transform: scale(0.96);
         }
     </style>
 </head>
@@ -123,7 +437,7 @@
                 <svg id="subwayMap" width="100%" height="100%"></svg>
             </div>
             <div class="map-controls">
-                <span>💡 鼠标滚轮缩放 | 拖拽平移 | 悬停查看详情 | by woshiikun_1145 | 2.5.0</span>
+                <span>💡 鼠标滚轮缩放 | 拖拽平移 | 悬停查看详情 | by woshiikun_1145 | 2.6.0</span>
             </div>
         </div>
         <div class="sidebar">

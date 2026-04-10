@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>巧克力服铁路线路图-状态监控</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#ff9800">
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+        }
+
+        body {
+            margin: 0;
+            background: #f0f2f5;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .status-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header-card {
+            background: white;
+            border-radius: 28px;
+            padding: 20px 28px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 6px solid #ff9800;
+        }
+
+        .title-section h1 {
+            margin: 0 0 6px 0;
+            font-size: 1.7rem;
+            color: #1e3c72;
+        }
+
+        .title-section p {
+            margin: 0;
+            color: #5a6874;
+            font-size: 0.9rem;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: #1e3c72;
+            color: white;
+            border: none;
+            border-radius: 40px;
+            padding: 8px 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-outline {
+            background: white;
+            color: #1e3c72;
+            border: 1px solid #cad2db;
+        }
+
+        .btn-outline:hover {
+            background: #f0f4fa;
+            border-color: #1e3c72;
+        }
+
+        .btn-primary {
+            background: #ff9800;
+            color: #1e2a3e;
+            box-shadow: 0 2px 6px rgba(255,152,0,0.3);
+        }
+
+        .btn-primary:hover {
+            background: #f57c00;
+            transform: translateY(-1px);
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .overview-card {
+            background: white;
+            border-radius: 28px;
+            padding: 20px 28px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .health-badge {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .status-icon {
+            font-size: 2.5rem;
+        }
+
+        .status-text {
+            font-weight: 700;
+            font-size: 1.4rem;
+        }
+
+        .status-ok { color: #2e7d32; }
+        .status-warning { color: #ed6c02; }
+        .status-error { color: #d32f2f; }
+
+        .last-check {
+            color: #5f6c7a;
+            font-size: 0.85rem;
+            background: #f8f9fc;
+            padding: 8px 14px;
+            border-radius: 40px;
+        }
+
+        .metric-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .metric-card {
+            background: white;
+            border-radius: 24px;
+            padding: 16px 24px;
+            flex: 1;
+            min-width: 200px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border-bottom: 3px solid #e0e7ff;
+        }
+
+        .metric-card h4 {
+            margin: 0 0 8px 0;
+            font-size: 0.9rem;
+            color: #5a6874;
+        }
+
+        .metric-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #1e3c72;
+        }
+
+        .metric-unit {
+            font-size: 0.9rem;
+            font-weight: normal;
+            color: #7e8c9e;
+        }
+
+        .grid-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 22px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 28px;
+            padding: 18px 22px;
+            box-shadow: 0 5px 12px rgba(0,0,0,0.05);
+            transition: all 0.2s;
+            border-top: 4px solid #e0e7ff;
+        }
+
+        .stat-card h3 {
+            margin: 0 0 12px 0;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #1e3c72;
+        }
+
+        .stat-count {
+            font-size: 2rem;
+            font-weight: 800;
+            margin: 8px 0;
+            color: #1f2f44;
+        }
+
+        .stat-meta {
+            font-size: 0.75rem;
+            color: #7e8c9e;
+            border-top: 1px solid #ecf0f3;
+            margin-top: 12px;
+            padding-top: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .badge-success { background: #e8f5e9; color: #2e7d32; border-radius: 40px; padding: 2px 10px; font-size: 0.7rem; font-weight: 500; }
+        .badge-error { background: #ffebee; color: #c62828; border-radius: 40px; padding: 2px 10px; font-size: 0.7rem; }
+        .badge-warning { background: #fff4e5; color: #b85c00; border-radius: 40px; padding: 2px 10px; font-size: 0.7rem; }
+
+        .detail-row {
+            font-size: 0.8rem;
+            margin-top: 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .null-warning {
+            background: #fff8e7;
+            border-left: 3px solid #ffb74d;
+            padding: 6px 10px;
+            border-radius: 16px;
+            font-size: 0.75rem;
+            margin-top: 10px;
+            color: #b45f06;
+        }
+
+        .info-footnote {
+            background: #eef2fa;
+            border-radius: 24px;
+            padding: 16px 24px;
+            text-align: center;
+            color: #2c3e66;
+            font-size: 0.85rem;
+            margin-top: 20px;
+        }
+
+        .error-details {
+            background: #fff8f0;
+            border-left: 4px solid #ff9800;
+            padding: 12px 20px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            font-size: 0.85rem;
+            word-break: break-word;
+        }
+
+        @media (max-width: 680px) {
+            body { padding: 12px; }
+            .header-card, .overview-card { padding: 16px; }
+            .stat-count { font-size: 1.8rem; }
+            .title-section h1 { font-size: 1.3rem; }
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(0,0,0,0.1);
+            border-radius: 50%;
+            border-top-color: #ff9800;
+            animation: spin 0.6s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="status-container">
+    <div class="header-card">
+        <div class="title-section">
+            <h1>📡 服务健康状态 · 实时监控</h1>
+            <p>巧克力服铁路线路图 | 数据库连通性 + 数据完整性 + CDN 延迟</p>
+        </div>
+        <div class="actions">
+            <a href="https://csrtsp.pages.dev" class="btn btn-outline">🗺️ 返回地图</a>
+            <button id="refreshBtn" class="btn btn-primary">🔄 立即检测</button>
+        </div>
+    </div>
+
+    <div class="overview-card" id="overviewArea">
+        <div class="health-badge">
+            <span class="status-icon" id="globalIcon">⏳</span>
+            <span class="status-text" id="globalStatus">检测中...</span>
+        </div>
+        <div class="last-check" id="lastCheckTime">最后检测: --:--:--</div>
+    </div>
+
+    <!-- Cloudflare Pages 延迟 + 数据完整性摘要 -->
+    <div class="metric-row">
+        <div class="metric-card" id="cfLatencyCard">
+            <h4>☁️ Cloudflare Pages 响应延迟</h4>
+            <div class="metric-value" id="cfLatencyValue">--</div>
+            <div class="metric-unit" id="cfLatencyNote">测量中...</div>
+        </div>
+        <div class="metric-card" id="integrityCard">
+            <h4>📋 数据完整性 (NULL 字段检查)</h4>
+            <div class="metric-value" id="integrityValue">--</div>
+            <div class="metric-unit" id="integrityNote">必填字段 NULL 统计</div>
+        </div>
+    </div>
+
+    <div id="errorPanel" style="display: none;" class="error-details"></div>
+
+    <div class="grid-stats" id="statsGrid">
+        <div class="stat-card" style="justify-content: center; align-items: center; display: flex;">⏳ 加载状态中...</div>
+    </div>
+
+    <div class="info-footnote">
+        Ver 1.0.0 | by woshiikun_1145
+    </div>
+</div>
+
+<script>
+    const SUPABASE_URL = 'https://ydigzsaqcxmqtqtjybxy.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_mTmzq11QUTFbZpCbdiPYng_PbBFj2kc';
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // 各表的必填字段定义（用于 NULL 检测）
+    const REQUIRED_FIELDS = {
+        stations: ['name', 'x', 'z', 'dimension'],
+        lines: ['name', 'type', 'color', 'station_order'],  // operator 可为空
+        operators: ['name'],                                 // icon 可为空
+        transfers: ['from_station', 'to_station', 'dimension']  // weight 可为空（自动计算）
+    };
+
+    const TABLES = [
+        { name: 'stations', display: 'Stations', desc: '所有车站坐标及维度' },
+        { name: 'lines', display: 'Lines', desc: '铁路线路及站点顺序' },
+        { name: 'operators', display: 'Operators', desc: '运营公司/集团' },
+        { name: 'transfers', display: 'Transfers', desc: '步行换乘关系' }
+    ];
+
+    // DOM 元素
+    const globalIconSpan = document.getElementById('globalIcon');
+    const globalStatusSpan = document.getElementById('globalStatus');
+    const lastCheckSpan = document.getElementById('lastCheckTime');
+    const errorPanel = document.getElementById('errorPanel');
+    const statsGrid = document.getElementById('statsGrid');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const cfLatencyValueSpan = document.getElementById('cfLatencyValue');
+    const cfLatencyNoteSpan = document.getElementById('cfLatencyNote');
+    const integrityValueSpan = document.getElementById('integrityValue');
+    const integrityNoteSpan = document.getElementById('integrityNote');
+
+    let currentCheckTime = null;
+    let currentCfLatency = null;     // ms
+    let currentNullSummary = { totalNullTables: 0, details: [] };
+
+    function formatTime(date) {
+        return date.toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' });
+    }
+
+    // 1. 检测 Cloudflare Pages 延迟 (HEAD 请求自身，绕过缓存)
+    async function measureCloudflareLatency() {
+        const start = performance.now();
+        try {
+            // 添加随机参数避免缓存，使用 HEAD 方法仅获取响应头
+            const res = await fetch('/?cf_latency=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
+            const end = performance.now();
+            const latency = Math.round(end - start);
+            if (res.ok || res.status < 500) {
+                return { success: true, latency };
+            } else {
+                return { success: false, latency, error: `HTTP ${res.status}` };
+            }
+        } catch (err) {
+            const end = performance.now();
+            return { success: false, latency: Math.round(end - start), error: err.message };
+        }
+    }
+
+    // 2. 检测单个表的 NULL 问题 (返回 { hasNull: bool, nullCount: number, details: string })
+    async function checkTableNulls(tableName, requiredFields) {
+        if (!requiredFields || requiredFields.length === 0) return { hasNull: false, nullCount: 0, details: '' };
+        try {
+            // 获取所有记录 (限制最多 1000 条，避免过大)
+            const { data, error } = await sb.from(tableName).select('*').limit(1000);
+            if (error) throw error;
+            if (!data || data.length === 0) return { hasNull: false, nullCount: 0, details: '无记录' };
+
+            let nullRecords = 0;
+            const fieldNullMap = new Map(); // 记录每个字段缺失次数
+            for (const row of data) {
+                let rowHasNull = false;
+                for (const field of requiredFields) {
+                    const val = row[field];
+                    if (val === null || val === undefined || (typeof val === 'string' && val.trim() === '')) {
+                        rowHasNull = true;
+                        fieldNullMap.set(field, (fieldNullMap.get(field) || 0) + 1);
+                    }
+                }
+                if (rowHasNull) nullRecords++;
+            }
+            if (nullRecords === 0) return { hasNull: false, nullCount: 0, details: '✅ 无缺失' };
+            // 生成详细描述
+            const fieldDetails = Array.from(fieldNullMap.entries()).map(([f, cnt]) => `${f}:${cnt}条`).join(', ');
+            return { hasNull: true, nullCount: nullRecords, details: `⚠️ ${nullRecords}条记录含NULL (${fieldDetails})` };
+        } catch (err) {
+            return { hasNull: false, nullCount: 0, details: `检测失败: ${err.message}` };
+        }
+    }
+
+    // 3. 检测单个表的连接与计数 (原有逻辑)
+    async function checkTableStatus(tableName) {
+        const start = performance.now();
+        try {
+            const { count, error } = await sb.from(tableName).select('*', { count: 'exact', head: true });
+            const duration = Math.round(performance.now() - start);
+            if (error) return { success: false, count: null, errorMsg: error.message, durationMs: duration };
+            return { success: true, count: count !== null ? count : 0, errorMsg: null, durationMs: duration };
+        } catch (err) {
+            const duration = Math.round(performance.now() - start);
+            return { success: false, count: null, errorMsg: err.message || '未知网络错误', durationMs: duration };
+        }
+    }
+
+    // 4. 整体连通性测试
+    async function checkOverallConnectivity() {
+        try {
+            const start = performance.now();
+            const { error } = await sb.from('stations').select('id', { count: 'exact', head: true, limit: 1 });
+            const latency = Math.round(performance.now() - start);
+            if (error) return { ok: false, latency, error: error.message };
+            return { ok: true, latency, error: null };
+        } catch (e) {
+            return { ok: false, latency: -1, error: e.message };
+        }
+    }
+
+    // 渲染卡片（包含 NULL 警告）
+    function renderStatsCards(tableStatuses, nullResults) {
+        let html = '';
+        for (let i = 0; i < TABLES.length; i++) {
+            const tableDef = TABLES[i];
+            const status = tableStatuses[i];
+            const nullInfo = nullResults[i];
+            const success = status.success;
+            const count = status.count;
+            const duration = status.durationMs;
+            const errorMsg = status.errorMsg;
+
+            let badgeHtml = '';
+            let statusColor = '';
+            if (success) {
+                badgeHtml = `<span class="badge-success">✅ 可读</span>`;
+                statusColor = '#2e7d32';
+            } else {
+                badgeHtml = `<span class="badge-error">❌ 失败</span>`;
+                statusColor = '#d32f2f';
+            }
+
+            const countDisplay = success ? (count !== null ? count.toLocaleString() : '0') : '--';
+            const detailInfo = success ? `响应耗时: ${duration}ms` : `错误: ${errorMsg || '查询失败'}`;
+
+            let nullWarningHtml = '';
+            if (success && nullInfo && nullInfo.hasNull) {
+                nullWarningHtml = `<div class="null-warning">${nullInfo.details}</div>`;
+                badgeHtml = `<span class="badge-warning">🟡 含NULL</span>`;
+                statusColor = '#ed6c02';
+            } else if (success && nullInfo && !nullInfo.hasNull && nullInfo.details && nullInfo.details.includes('无记录')) {
+                // 无记录不算警告
+            } else if (success && nullInfo && !nullInfo.hasNull) {
+                nullWarningHtml = `<div class="null-warning" style="background:#e8f5e9; border-left-color:#4caf50;">✅ 必填字段完整</div>`;
+            }
+
+            html += `
+                <div class="stat-card" style="border-top-color: ${success ? (nullInfo?.hasNull ? '#ffb74d' : '#4caf50') : '#f44336'}">
+                    <h3>${tableDef.display}</h3>
+                    <div class="stat-count" style="color: ${statusColor}">${countDisplay}</div>
+                    <div class="detail-row">
+                        <span>📊 记录总数</span>
+                        ${badgeHtml}
+                    </div>
+                    <div class="detail-row">
+                        <span>⏱️ ${detailInfo}</span>
+                    </div>
+                    ${nullWarningHtml}
+                    <div class="stat-meta">
+                        <span>📌 ${tableDef.desc}</span>
+                    </div>
+                </div>
+            `;
+        }
+        statsGrid.innerHTML = html;
+    }
+
+    // 更新总体健康（含 CF 延迟 + NULL 影响）
+    function updateOverallStatus(tableResults, connectivity, cfLatencyResult, nullSummary) {
+        const allSuccess = tableResults.every(r => r.success === true);
+        const anyFailure = tableResults.some(r => r.success === false);
+        const connOk = connectivity?.ok === true;
+
+        const hasNullWarning = nullSummary.totalNullTables > 0;
+        const isCfSlow = (cfLatencyResult.success && cfLatencyResult.latency > 800);
+        let globalIcon = '🔴';
+        let globalText = '服务不可用';
+        let globalColorClass = 'status-error';
+
+        if (!connOk && !allSuccess) {
+            globalIcon = '⚠️';
+            globalText = '后端连接失败';
+        } else if (allSuccess && connOk && !hasNullWarning && !isCfSlow) {
+            globalIcon = '🟢';
+            globalText = '所有服务正常 · 数据完整';
+            globalColorClass = 'status-ok';
+        } else if ((hasNullWarning || isCfSlow) && allSuccess && connOk) {
+            globalIcon = '🟡';
+            globalText = '服务正常，但存在警告';
+            globalColorClass = 'status-warning';
+        } else if (anyFailure || !connOk) {
+            globalIcon = '🔴';
+            globalText = '部分服务异常';
+            globalColorClass = 'status-error';
+        }
+
+        globalIconSpan.innerHTML = globalIcon;
+        globalStatusSpan.innerHTML = globalText;
+        globalStatusSpan.className = `status-text ${globalColorClass}`;
+
+        // 构建详细错误面板
+        let errorMessages = [];
+        if (connectivity && !connectivity.ok) {
+            errorMessages.push(`🔌 基础连接失败: ${connectivity.error || '网络超时'} (延迟: ${connectivity.latency > 0 ? connectivity.latency + 'ms' : 'N/A'})`);
+        }
+        if (cfLatencyResult && !cfLatencyResult.success) {
+            errorMessages.push(`🌐 Cloudflare Pages 测速失败: ${cfLatencyResult.error || '未知'} (耗时 ${cfLatencyResult.latency}ms)`);
+        } else if (cfLatencyResult && cfLatencyResult.latency > 800) {
+            errorMessages.push(`⏱️ Cloudflare 响应延迟较高 (${cfLatencyResult.latency}ms)，可能影响体验。`);
+        }
+        tableResults.forEach((res, idx) => {
+            if (!res.success) {
+                errorMessages.push(`📉 表 ${TABLES[idx].name} 查询失败: ${res.errorMsg || '未知错误'} (耗时 ${res.durationMs}ms)`);
+            } else if (res.durationMs > 800) {
+                errorMessages.push(`⚠️ 表 ${TABLES[idx].name} 响应较慢 (${res.durationMs}ms)`);
+            }
+        });
+        if (hasNullWarning) {
+            errorMessages.push(`📋 数据完整性警告: ${nullSummary.details || `${nullSummary.totalNullTables} 个表中存在 NULL 必填字段`}。建议检查并补全数据。`);
+        }
+
+        if (errorMessages.length > 0) {
+            errorPanel.style.display = 'block';
+            errorPanel.innerHTML = `<strong>⚠️ 检测到异常 / 警告</strong><br>${errorMessages.map(m => `• ${m}`).join('<br>')}<br>`;
+        } else {
+            errorPanel.style.display = 'none';
+
+        }
+    }
+
+    // 显示加载占位
+    function showLoading() {
+        statsGrid.innerHTML = `<div class="stat-card" style="justify-content: center; gap: 10px; display: flex;"><div class="spinner"></div> 正在检测后端服务...</div>`;
+        globalIconSpan.innerHTML = '⏳';
+        globalStatusSpan.innerHTML = '检测中...';
+        globalStatusSpan.className = 'status-text';
+        errorPanel.style.display = 'none';
+        cfLatencyValueSpan.innerHTML = '--';
+        cfLatencyNoteSpan.innerHTML = '测量中...';
+        integrityValueSpan.innerHTML = '--';
+        integrityNoteSpan.innerHTML = '检查字段完整性...';
+    }
+
+    // 核心检测流程
+    async function performHealthCheck() {
+        showLoading();
+        const startTotal = performance.now();
+
+        // 并行执行：表状态、NULL检查、CF延迟、连通性
+        const tableStatusPromises = TABLES.map(t => checkTableStatus(t.name));
+        const nullCheckPromises = TABLES.map(t => checkTableNulls(t.name, REQUIRED_FIELDS[t.name] || []));
+        const cfLatencyPromise = measureCloudflareLatency();
+        const connectivityPromise = checkOverallConnectivity();
+
+        const tableResults = await Promise.all(tableStatusPromises);
+        const nullResults = await Promise.all(nullCheckPromises);
+        const cfResult = await cfLatencyPromise;
+        const connectivityResult = await connectivityPromise;
+
+        const totalDuration = Math.round(performance.now() - startTotal);
+        currentCheckTime = new Date();
+        lastCheckSpan.innerHTML = `最后检测: ${formatTime(currentCheckTime)} (总耗时 ${totalDuration}ms)`;
+
+        // 更新 CF 延迟显示
+        if (cfResult.success) {
+            cfLatencyValueSpan.innerHTML = `${cfResult.latency} ms`;
+            cfLatencyNoteSpan.innerHTML = cfResult.latency > 500 ? '⚠️ 延迟偏高' : '✅ CDN 响应正常';
+            currentCfLatency = cfResult.latency;
+        } else {
+            cfLatencyValueSpan.innerHTML = '❌ 失败';
+            cfLatencyNoteSpan.innerHTML = cfResult.error || '无法测量 Cloudflare 延迟';
+            currentCfLatency = null;
+        }
+
+        // 汇总 NULL 结果
+        let totalNullTables = 0;
+        let nullDetailsList = [];
+        nullResults.forEach((res, idx) => {
+            if (res.hasNull) {
+                totalNullTables++;
+                nullDetailsList.push(`${TABLES[idx].name}: ${res.nullCount}条记录含NULL`);
+            }
+        });
+        currentNullSummary = {
+            totalNullTables,
+            details: nullDetailsList.join('; ')
+        };
+        if (totalNullTables === 0) {
+            integrityValueSpan.innerHTML = '✅ 完整';
+            integrityNoteSpan.innerHTML = '所有必填字段无 NULL';
+        } else {
+            integrityValueSpan.innerHTML = `🟡 ${totalNullTables}个表存在问题`;
+            integrityNoteSpan.innerHTML = currentNullSummary.details.substring(0, 60);
+        }
+
+        // 渲染卡片（含NULL警告）
+        renderStatsCards(tableResults, nullResults);
+        // 更新总体状态
+        updateOverallStatus(tableResults, connectivityResult, cfResult, currentNullSummary);
+
+        if (!navigator.onLine) {
+            errorPanel.style.display = 'block';
+            const existing = errorPanel.innerHTML;
+            errorPanel.innerHTML = `📶 浏览器离线，请检查网络。<br>${existing}`;
+        }
+
+        console.log('[状态监控] 检测完成', { tableResults, nullSummary: currentNullSummary, cfLatency: cfResult });
+    }
+
+    refreshBtn.addEventListener('click', async () => {
+        refreshBtn.disabled = true;
+        refreshBtn.innerHTML = '<div class="spinner" style="border-top-color:white;"></div> 检测中...';
+        await performHealthCheck();
+        refreshBtn.disabled = false;
+        refreshBtn.innerHTML = '🔄 立即检测';
+    });
+
+    window.addEventListener('load', async () => {
+        if (!navigator.onLine) {
+            errorPanel.style.display = 'block';
+            errorPanel.innerHTML = '📶 当前网络离线，无法连接后端。请检查网络后点击「立即检测」。';
+            globalIconSpan.innerHTML = '📴';
+            globalStatusSpan.innerHTML = '无网络连接';
+            globalStatusSpan.className = 'status-text status-error';
+        }
+        await performHealthCheck();
+
+        let intervalId = null;
+        function startAutoRefresh() {
+            if (intervalId) clearInterval(intervalId);
+            intervalId = setInterval(async () => {
+                if (document.visibilityState === 'visible') {
+                    await performHealthCheck();
+                }
+            }, 60000);
+        }
+        startAutoRefresh();
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && !intervalId) startAutoRefresh();
+        });
+    });
+</script>
+</body>
+</html>
