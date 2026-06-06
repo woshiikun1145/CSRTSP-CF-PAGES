@@ -309,7 +309,7 @@
         <div class="metric-card" id="integrityCard">
             <h4>📋 数据完整性 (NULL 字段检查)</h4>
             <div class="metric-value" id="integrityValue">--</div>
-            <div class="metric-unit" id="integrityNote">必填字段 NULL 统计</div>
+            <div class="metric-unit" id="integrityNote">字段 NULL 统计</div>
         </div>
     </div>
 
@@ -329,7 +329,7 @@
     const SUPABASE_ANON_KEY = 'sb_publishable_mTmzq11QUTFbZpCbdiPYng_PbBFj2kc';
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // 各表的必填字段定义（用于 NULL 检测）
+    // 各表的字段定义（用于 NULL 检测）
     const REQUIRED_FIELDS = {
         stations: ['name', 'x', 'z', 'dimension'],
         lines: ['name', 'type', 'color', 'station_order'],  // operator 可为空
@@ -474,7 +474,7 @@
             } else if (success && nullInfo && !nullInfo.hasNull && nullInfo.details && nullInfo.details.includes('无记录')) {
                 // 无记录不算警告
             } else if (success && nullInfo && !nullInfo.hasNull) {
-                nullWarningHtml = `<div class="null-warning" style="background:#e8f5e9; border-left-color:#4caf50;">✅ 必填字段完整</div>`;
+                nullWarningHtml = `<div class="null-warning" style="background:#e8f5e9; border-left-color:#4caf50;">✅ 字段完整</div>`;
             }
 
             html += `
@@ -549,7 +549,7 @@
             }
         });
         if (hasNullWarning) {
-            errorMessages.push(`📋 数据完整性警告: ${nullSummary.details || `${nullSummary.totalNullTables} 个表中存在 NULL 必填字段`}。建议检查并补全数据。`);
+            errorMessages.push(`📋 数据完整性警告: ${nullSummary.details || `${nullSummary.totalNullTables} 个表中存在 NULL 字段`}。建议检查并补全数据。`);
         }
 
         if (errorMessages.length > 0) {
@@ -620,7 +620,7 @@
         };
         if (totalNullTables === 0) {
             integrityValueSpan.innerHTML = '✅ 完整';
-            integrityNoteSpan.innerHTML = '所有必填字段无 NULL';
+            integrityNoteSpan.innerHTML = '所有字段无 NULL';
         } else {
             integrityValueSpan.innerHTML = `🟡 ${totalNullTables}个表存在问题`;
             integrityNoteSpan.innerHTML = currentNullSummary.details.substring(0, 60);

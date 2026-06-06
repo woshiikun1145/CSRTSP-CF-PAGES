@@ -66,9 +66,24 @@
             display: flex; justify-content: space-between; 
             align-items: center; 
             border-radius: 24px 24px 0 0; 
+            flex-wrap: wrap;
+            gap: 12px;
         }
         h1 { margin: 0; 
-            font-size: 1.3rem; /* 主标题字体大小，h1 */
+            font-size: 1.3rem;
+        }
+        .lang-select {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+        .lang-select option {
+            background: #1e3c72;
+            color: white;
         }
         .main { 
             display: flex;
@@ -246,6 +261,9 @@
         .aux-controls label { 
             margin-left: 8px; 
             margin-right: 12px; 
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
         .coord-input { 
             display: inline-flex; 
@@ -400,14 +418,18 @@
     <header>
         <h1>巧克力服铁路线路图 <br>
             Chocolate Server Rail Transit System Plan</h1>
-        <div style="font-size: 14px;">💡 所有人都可自由编辑，无需审核。<br>
+        <select id="langSelect" class="lang-select">
+            <option value="zh">Language 语言：中文</option>
+            <option value="en">语言 Language: English</option>
+        </select>
+        <div id="headerHint" style="font-size: 14px;">💡 所有人都可自由编辑，无需审核。<br>
         ℹ️ 由于服务器铁路众多，我们希望你能够添加你所知道的铁路！<br>
         ⚠️ 尚不完整支持手机端和过旧的浏览器！</div>
     </header>
     <div class="main">
         <div class="map-panel">
             <div class="dimension-bar">
-                <span>🌍 当前维度：</span>
+                <span id="dimensionLabel">🌍 当前维度：</span>
                 <select id="dimensionSelect">
                     <option value="主世界">主世界</option>
                     <option value="下界">下界</option>
@@ -418,10 +440,10 @@
                 <button id="refreshBtn">切换</button>
             </div>
             <div class="aux-controls">
-                <label><input type="checkbox" id="showGridCheckbox"> 显示坐标网格</label>
-                <label><input type="checkbox" id="showAxesCheckbox"> 显示坐标轴</label>
+                <label id="gridLabel"><input type="checkbox" id="showGridCheckbox"> 显示坐标网格</label>
+                <label id="axesLabel"><input type="checkbox" id="showAxesCheckbox"> 显示坐标轴</label>
                 <div class="coord-input">
-                    <span>跳转到：</span>
+                    <span id="jumpLabel">跳转到：</span>
                     <input type="number" id="jumpX" placeholder="X" value="0">
                     <input type="number" id="jumpZ" placeholder="Z" value="0">
                     <button id="jumpBtn">跳转</button>
@@ -437,12 +459,12 @@
                 <svg id="subwayMap" width="100%" height="100%"></svg>
             </div>
             <div class="map-controls">
-                <span>💡 鼠标滚轮缩放 | 拖拽平移 | 悬停查看详情 | by woshiikun_1145 | 2.7.0</span>
+                <span id="mapHint">💡 鼠标滚轮缩放 | 拖拽平移 | 悬停查看详情 | by woshiikun_1145 | 2.9.0</span> <!--版本-->
             </div>
         </div>
         <div class="sidebar">
             <div class="plan-form">
-                <h3>🗺️ 路线规划</h3>
+                <h3 id="routePlanTitle">🗺️ 路线规划</h3>
                 <input type="text" id="startStation" placeholder="起点站名" list="stationList">
                 <input type="text" id="endStation" placeholder="终点站名" list="stationList">
                 <datalist id="stationList"></datalist>
@@ -451,15 +473,15 @@
             </div>
 
             <div class="admin-form">
-                <h3>🔧 管理工具</h3>
-                <div class="section-title">📌 站点管理</div>
+                <h3 id="adminTitle">🔧 管理工具</h3>
+                <div id="stationMgmtTitle" class="section-title">📌 站点管理</div>
                 <div id="stationListAdmin" class="item-list"></div>
                 <div style="margin-bottom:12px;">
                     <button id="addStationBtn">➕ 添加站点</button>
                     <button id="editStationBtn">✏️ 编辑站点</button>
                     <button id="deleteStationBtn">🗑️ 删除站点</button>
                 </div>
-                <div class="section-title">🟢 线路管理</div>
+                <div id="lineMgmtTitle" class="section-title">🟢 线路管理</div>
                 <div id="lineListAdmin" class="item-list"></div>
                 <div style="margin-bottom:12px;">
                     <button id="addLineBtn">➕ 添加线路</button>
@@ -467,14 +489,14 @@
                     <button id="deleteLineBtn">🗑️ 删除线路</button>
                     <button id="orderLineBtn">↗️ 调整顺序</button>
                 </div>
-                <div class="section-title">🏢 运营集团管理</div>
+                <div id="operatorMgmtTitle" class="section-title">🏢 运营集团管理</div>
                 <div id="operatorListAdmin" class="item-list"></div>
                 <div style="margin-bottom:12px;">
                     <button id="addOperatorBtn">➕ 添加集团</button>
                     <button id="editOperatorBtn">✏️ 编辑集团</button>
                     <button id="deleteOperatorBtn">🗑️ 删除集团</button>
                 </div>
-                <div class="section-title">🚶 站外换乘管理</div>
+                <div id="transferMgmtTitle" class="section-title">🚶 站外换乘管理</div>
                 <div id="transferListAdmin" class="item-list"></div>
                 <div style="margin-bottom:12px;">
                     <button id="addTransferBtn">➕ 添加换乘</button>
@@ -505,20 +527,19 @@
     let stations = [];
     let lines = [];
     let operators = [];
-    let transfers = [];      // 站外换乘列表
+    let transfers = [];
     let tooltipDiv = null;
     let svg = null;
     let viewBox = { x: 0, y: 0, width: 800, height: 600 };
     let isPanning = false;
     let startPoint = { x: 0, y: 0 };
     let startViewBox = { x: 0, y: 0 };
+    let currentLang = 'zh';
 
     let showGrid = false;
     let showAxes = false;
 
-    // 维度列表（用于动态生成）
     const DIMENSIONS = ['主世界', '下界', '末地', '资源世界', '异次元之家'];
-    // 允许跨维度传送的维度对（末地、异次元不能跨维度）
     const CROSS_DIMENSION_ALLOWED = (from, to) => {
         if (from === to) return false;
         if (from === '末地' || to === '末地') return false;
@@ -526,12 +547,140 @@
         return true;
     };
 
-    // 辅助函数：格式化时间
+    // 维度翻译
+    function translateDimension(dim, lang) {
+        if (lang !== 'en') return dim;
+        const map = {
+            '主世界': 'Overworld',
+            '下界': 'Nether',
+            '末地': 'The End',
+            '资源世界': 'Resource World',
+            '异次元之家': 'Other Dimension'
+        };
+        return map[dim] || dim;
+    }
+
+    // 线路类型翻译
+    function translateLineType(type, lang) {
+        if (lang !== 'en') return type;
+        const map = {
+            '单轨铁路': 'Monorail',
+            '双轨铁路': 'Railway',
+            '蓝冰船': 'Blue Ice Boat',
+            '长距铁路': 'Long-distance Railway'
+        };
+        return map[type] || type;
+    }
+
+    const i18n = {
+        zh: {
+            routePlanTitle: "🗺️ 路线规划",
+            startPlaceholder: "起点站名",
+            endPlaceholder: "终点站名",
+            planBtn: "规划路线",
+            adminTitle: "🔧 管理工具",
+            stationMgmt: "📌 站点管理",
+            lineMgmt: "🟢 线路管理",
+            operatorMgmt: "🏢 运营集团管理",
+            transferMgmt: "🚶 站外换乘管理",
+            addStation: "➕ 添加站点",
+            editStation: "✏️ 编辑站点",
+            deleteStation: "🗑️ 删除站点",
+            addLine: "➕ 添加线路",
+            editLine: "✏️ 编辑线路",
+            deleteLine: "🗑️ 删除线路",
+            orderLine: "↗️ 调整顺序",
+            addOperator: "➕ 添加集团",
+            editOperator: "✏️ 编辑集团",
+            deleteOperator: "🗑️ 删除集团",
+            addTransfer: "➕ 添加换乘",
+            deleteTransfer: "🗑️ 删除换乘",
+            noOperator: "无",
+            portalCount: "传送门",
+            transferHint: "站内换乘",
+            outTransferHint: "站外换乘",
+            portalHint: "传送门",
+            estTime: "预计最短时间",
+            seconds: "秒",
+            minutes: "分",
+            pathNotFound: "❌ 未找到路径",
+            totalStations: "站",
+            totalTime: "总时间",
+            confirm: "确认",
+            cancel: "取消",
+            jumpTo: "跳转到：",
+            showGrid: "显示坐标网格",
+            showAxes: "显示坐标轴",
+            dimension: "当前维度",
+            switchDim: "切换",
+            clickCoord: "点击地图显示坐标",
+            zoomHint: "鼠标滚轮缩放 | 拖拽平移 | 悬停查看详情",
+            headerHint: "💡 所有人都可自由编辑，无需审核。<br>ℹ️ 由于服务器铁路众多，我们希望你能够添加你所知道的铁路！<br>⚠️ 尚不完整支持手机端和过旧的浏览器！",
+            // 管理列表标签
+            dimensionLabel: "维度:",
+            operatorLabel: "运营集团:",
+            stationsLabel: "站点:",
+            portalsLabel: "传送门:",
+            walkingDistanceLabel: "步行距离:"
+        },
+        en: {
+            routePlanTitle: "🗺️ Route Planner",
+            startPlaceholder: "Start station",
+            endPlaceholder: "End station",
+            planBtn: "Plan Route",
+            adminTitle: "🔧 Admin Tools",
+            stationMgmt: "📌 Station Management",
+            lineMgmt: "🟢 Line Management",
+            operatorMgmt: "🏢 Operator Management",
+            transferMgmt: "🚶 Out-of-station Transfer",
+            addStation: "➕ Add Station",
+            editStation: "✏️ Edit Station",
+            deleteStation: "🗑️ Delete Station",
+            addLine: "➕ Add Line",
+            editLine: "✏️ Edit Line",
+            deleteLine: "🗑️ Delete Line",
+            orderLine: "↗️ Reorder Stations",
+            addOperator: "➕ Add Operator",
+            editOperator: "✏️ Edit Operator",
+            deleteOperator: "🗑️ Delete Operator",
+            addTransfer: "➕ Add Transfer",
+            deleteTransfer: "🗑️ Delete Transfer",
+            noOperator: "None",
+            portalCount: "Portals",
+            transferHint: "In-station transfer",
+            outTransferHint: "Out-of-station transfer",
+            portalHint: "Portal",
+            estTime: "Estimated time",
+            seconds: "sec",
+            minutes: "min",
+            pathNotFound: "❌ Path not found",
+            totalStations: "stations",
+            totalTime: "Total time",
+            confirm: "Confirm",
+            cancel: "Cancel",
+            jumpTo: "Jump to:",
+            showGrid: "Show Grid",
+            showAxes: "Show Axes",
+            dimension: "Current Dimension",
+            switchDim: "Switch",
+            clickCoord: "Click map to show coordinates",
+            zoomHint: "Scroll to zoom | Drag to pan | Hover for details",
+            headerHint: "💡 Everyone can edit freely, no approval needed.<br>ℹ️ Since there are many railways, we hope you can add what you know!<br>⚠️ Mobile and old browsers are not fully supported.",
+            // 管理列表标签
+            dimensionLabel: "Dimension:",
+            operatorLabel: "Operator:",
+            stationsLabel: "Stations:",
+            portalsLabel: "Portals:",
+            walkingDistanceLabel: "Walking distance:"
+        }
+    };
+
     function formatTime(seconds) {
-        if (seconds < 60) return `${Math.round(seconds)}秒`;
+        const t = i18n[currentLang];
+        if (seconds < 60) return `${Math.round(seconds)}${t.seconds}`;
         const minutes = Math.floor(seconds / 60);
         const secs = Math.round(seconds % 60);
-        return `${minutes}分${secs}秒`;
+        return `${minutes}${t.minutes}${secs}${t.seconds}`;
     }
 
     function showModal(title, bodyHtml, onConfirm) {
@@ -670,7 +819,6 @@
 
         if (!stations.length) return;
 
-        // 计算当前维度站点的坐标范围
         let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
         stations.filter(s => s.dimension === currentDimension).forEach(s => {
             minX = Math.min(minX, s.x);
@@ -696,20 +844,17 @@
         const portalsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         const transfersGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
 
-        // 收集所有线段（包含折点和传送门），用于共线偏移
         const allSegments = [];
 
         lines.forEach(line => {
             const order = line.station_order;
             const breakpoints = line.breakpoints || [];
             const portals = line.portals || [];
-            // 按线段索引分组折点和传送门
             const breakpointsBySeg = {};
             breakpoints.forEach(bp => { if (!breakpointsBySeg[bp.segment]) breakpointsBySeg[bp.segment] = []; breakpointsBySeg[bp.segment].push(bp); });
             const portalsBySeg = {};
             portals.forEach(p => { if (!portalsBySeg[p.segment]) portalsBySeg[p.segment] = []; portalsBySeg[p.segment].push(p); });
 
-            // 绘制常规线段（相邻站点）
             for (let i = 0; i < order.length - 1; i++) {
                 const from = stations.find(s => s.id === order[i]);
                 const to = stations.find(s => s.id === order[i+1]);
@@ -740,12 +885,11 @@
                 });
             }
 
-            // 绘制环线首尾连接（如果 is_loop 为 true）
             if (line.is_loop && order.length >= 2) {
                 const first = stations.find(s => s.id === order[0]);
                 const last = stations.find(s => s.id === order[order.length - 1]);
                 if (first && last && first.dimension === currentDimension && last.dimension === currentDimension) {
-                    const segIndex = order.length; // 使用一个特殊的索引，比如 order.length
+                    const segIndex = order.length;
                     const segBreak = breakpointsBySeg[segIndex] || [];
                     const segPortals = portalsBySeg[segIndex] || [];
                     segPortals.sort((a,b) => {
@@ -772,7 +916,6 @@
             }
         });
 
-        // 共线偏移绘制（标准化线段并分组）
         const normalizedMap = new Map();
         allSegments.forEach(seg => {
             const points = seg.points;
@@ -791,7 +934,6 @@
                 const polyline = drawPolyline(seg.points, seg.lineColor, seg.baseWidth, seg.dash);
                 if (polyline) linesGroup.appendChild(polyline);
             } else {
-                // 共线偏移
                 const step = 2;
                 const offsets = [];
                 for (let i = 0; i < count; i++) {
@@ -833,7 +975,6 @@
             }
         });
 
-        // 绘制站外换乘（浅灰色虚线，同维度）
         transfers.forEach(transfer => {
             const from = stations.find(s => s.id === transfer.from_station);
             const to = stations.find(s => s.id === transfer.to_station);
@@ -844,7 +985,6 @@
             }
         });
 
-        // 绘制传送门方块（只显示当前维度作为起点的传送门，且仅当允许跨维度）
         lines.forEach(line => {
             const portals = line.portals || [];
             portals.forEach(portal => {
@@ -880,7 +1020,6 @@
             });
         });
 
-        // 绘制站点
         stations.filter(s => s.dimension === currentDimension).forEach(station => {
             const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             circle.setAttribute('cx', station.x);
@@ -892,8 +1031,8 @@
             circle.style.cursor = 'pointer';
             circle.addEventListener('mouseenter', (e) => {
                 const linesThrough = lines.filter(line => line.station_order.includes(station.id));
-                const linesInfo = linesThrough.map(l => `${l.name} (${l.type}, ${l.operator || '未知集团'})`).join(', ');
-                tooltipDiv.innerHTML = `🚉 ${station.name}<br>坐标: X=${station.x}, Z=${station.z}<br>🔄 途经线路: ${linesInfo || '无'}<br>维度: ${station.dimension}`;
+                const linesInfo = linesThrough.map(l => `${l.name} (${translateLineType(l.type, currentLang)}, ${l.operator || (currentLang === 'zh' ? '未知集团' : 'Unknown')})`).join(', ');
+                tooltipDiv.innerHTML = `🚉 ${station.name}<br>坐标: X=${station.x}, Z=${station.z}<br>🔄 途经线路: ${linesInfo || (currentLang === 'zh' ? '无' : 'None')}<br>维度: ${translateDimension(station.dimension, currentLang)}`;
                 tooltipDiv.style.left = (e.pageX + 12) + 'px';
                 tooltipDiv.style.top = (e.pageY - 30) + 'px';
                 tooltipDiv.style.display = 'block';
@@ -1055,24 +1194,22 @@
             const scaleY = viewBox.height / rect.height;
             const worldX = viewBox.x + mouseX * scaleX;
             const worldZ = viewBox.y + mouseY * scaleY;
-            document.getElementById('coordDisplay').innerHTML = `点击坐标: X=${worldX.toFixed(1)}, Z=${worldZ.toFixed(1)}`;
+            document.getElementById('coordDisplay').innerHTML = `${i18n[currentLang].clickCoord}: X=${worldX.toFixed(1)}, Z=${worldZ.toFixed(1)}`;
         });
     }
 
     function updateViewBox() { svg.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`); }
 
-    // ==================== 新版路线规划 ====================
     async function planRoute() {
         const startName = document.getElementById('startStation').value.trim();
         const endName = document.getElementById('endStation').value.trim();
-        if (!startName || !endName) { alert('请填写起点和终点'); return; }
+        if (!startName || !endName) { alert(i18n[currentLang].pathNotFound); return; }
 
         const startStation = stations.find(s => s.name === startName);
         const endStation = stations.find(s => s.name === endName);
-        if (!startStation || !endStation) { alert('站点不存在'); return; }
+        if (!startStation || !endStation) { alert(i18n[currentLang].pathNotFound); return; }
 
-        // 构建图：邻接表，每条边存储 { to, weight, edgeType, lineName, lineType, fromStationId, toStationId, transferWeight, portalTargetDim, portalSourceDim }
-        const graph = new Map(); // key: 站点id, value: 边数组
+        const graph = new Map();
 
         function addEdge(a, b, weight, edgeType, extra = {}) {
             if (!graph.has(a)) graph.set(a, []);
@@ -1083,16 +1220,14 @@
             graph.get(b).push(edgeBA);
         }
 
-        // 1. 铁路边
         lines.forEach(line => {
             const order = line.station_order;
             const lineName = line.name;
             const lineType = line.type;
-            // 根据线路类型确定速度（格/秒）
-            let speed = 10; // 默认双轨/长距
+            let speed = 8;
             if (lineType === '单轨铁路') speed = 8;
-            else if (lineType === '蓝冰船') speed = 20;
-            else if (lineType === '长距铁路') speed = 12;
+            else if (lineType === '蓝冰船') speed = 50;
+            else if (lineType === '长距铁路') speed = 8;
             
             for (let i = 0; i < order.length - 1; i++) {
                 const a = order[i];
@@ -1105,7 +1240,6 @@
                     addEdge(a, b, time, 'rail', { lineName, lineType, fromStationId: a, toStationId: b });
                 }
             }
-            // 环线首尾相连
             if (line.is_loop && order.length >= 2) {
                 const a = order[0];
                 const b = order[order.length-1];
@@ -1119,7 +1253,6 @@
             }
         });
 
-        // 2. 站外换乘边（步行速度 5格/秒）
         transfers.forEach(transfer => {
             const a = transfer.from_station;
             const b = transfer.to_station;
@@ -1128,22 +1261,21 @@
             if (stationA && stationB && stationA.dimension === stationB.dimension) {
                 const dist = Math.hypot(stationA.x - stationB.x, stationA.z - stationB.z);
                 const weight = transfer.weight !== undefined ? transfer.weight : dist;
-                const time = weight / 5;
+                const time = weight / 6;
                 addEdge(a, b, time, 'transfer', { fromStationId: a, toStationId: b, transferWeight: weight });
             }
         });
 
-        // 3. 传送门边（属于线路的某个线段，固定时间 5秒）
         lines.forEach(line => {
             const portals = line.portals || [];
             portals.forEach(portal => {
                 const order = line.station_order;
                 const fromStationId = order[portal.segment];
-                const toStationId = order[portal.segment+1]; // 传送门所在线段的下一站
+                const toStationId = order[portal.segment+1];
                 const fromStation = stations.find(s => s.id === fromStationId);
                 const toStation = stations.find(s => s.id === toStationId);
                 if (fromStation && toStation && fromStation.dimension !== toStation.dimension && CROSS_DIMENSION_ALLOWED(fromStation.dimension, toStation.dimension)) {
-                    const time = 5; // 传送门固定时间成本
+                    const time = 0;
                     addEdge(fromStationId, toStationId, time, 'portal', {
                         lineName: line.name,
                         lineType: line.type,
@@ -1156,10 +1288,9 @@
             });
         });
 
-        // Dijkstra 算法
         const dist = new Map();
-        const prev = new Map();      // 前一个节点id
-        const prevEdge = new Map();  // 从前一个节点到当前节点的边对象
+        const prev = new Map();
+        const prevEdge = new Map();
         const visited = new Set();
         const allNodeIds = stations.map(s => s.id);
         for (const id of allNodeIds) dist.set(id, Infinity);
@@ -1190,11 +1321,10 @@
         }
 
         if (dist.get(endStation.id) === Infinity) {
-            document.getElementById('planResult').innerHTML = '<span style="color:red">❌ 未找到路径</span>';
+            document.getElementById('planResult').innerHTML = `<span style="color:red">${i18n[currentLang].pathNotFound}</span>`;
             return;
         }
 
-        // 重建路径节点序列和边序列
         const pathNodes = [];
         const pathEdges = [];
         let cur = endStation.id;
@@ -1207,30 +1337,27 @@
             cur = prevNode;
         }
         pathNodes.unshift(startStation.id);
-        // pathEdges[i] 连接 pathNodes[i] -> pathNodes[i+1]
 
-        // 生成格式化文本
-        let html = `<strong>✅ 最短路径 (${pathNodes.length}站) </strong><br>`;
+        const t = i18n[currentLang];
+        let html = `<strong>✅ ${t.estTime}: ${formatTime(dist.get(endStation.id))}</strong><br>`;
         html += `<div style="font-family: monospace; white-space: pre-wrap; line-height: 1.6;">`;
 
         let currentLine = null;
         let currentEdgeType = null;
-        let segmentStationIds = []; // 当前段内的站点id列表
+        let segmentStationIds = [];
 
         function flushSegment() {
             if (segmentStationIds.length === 0) return;
-            // 输出线路名（如果有）
             if (currentLine) {
                 html += `<strong>${currentLine}</strong><br>`;
             }
-            // 输出站点列表：第一个站点前用 "| "，后续用 "↓ "
             for (let i = 0; i < segmentStationIds.length; i++) {
                 const station = stations.find(s => s.id === segmentStationIds[i]);
                 if (!station) continue;
-                if (i === 0) {
-                    html += `| ${station.name}<br>`;
-                } else {
+                if (i === segmentStationIds.length - 1) {
                     html += `↓ ${station.name}<br>`;
+                } else {
+                    html += `| ${station.name}<br>`;
                 }
             }
             segmentStationIds = [];
@@ -1246,75 +1373,73 @@
 
             if (edge.edgeType === 'rail') {
                 if (currentEdgeType !== 'rail' || currentLine !== edge.lineName) {
-                    // 不同线路，先结束上一段
                     flushSegment();
+                    if (currentEdgeType !== null) {
+                        html += `${t.transferHint}：${edge.lineName}<br>`;
+                    }
                     currentEdgeType = 'rail';
                     currentLine = edge.lineName;
-                    // 开始新段：添加当前站点（fromId）作为第一个站点
                     segmentStationIds.push(fromId);
                 }
-                // 添加下一站
                 segmentStationIds.push(toId);
             } 
             else if (edge.edgeType === 'transfer') {
-                // 站外换乘：先结束当前线路段
                 flushSegment();
                 currentEdgeType = 'transfer';
                 currentLine = null;
-                // 输出换乘提示
-                html += `站外换乘：${fromStation.name} → ${toStation.name}<br>`;
-                // 换乘后，下一段应该从 toStation 开始，但下一段如果是 rail，会在下次循环时添加 fromId
-                // 由于换乘边之后，下一段的第一个站点应该是 toStation，我们提前清空 segmentStationIds，
-                // 并且设置一个标志，让下一段 rail 开始时先把 toStation 加入？实际上在下一个循环中，如果 edge.edgeType === 'rail'，
-                // 会执行 if 条件（因为 currentEdgeType 变了），然后 segmentStationIds.push(fromId) 会添加 toStation（因为 fromId 就是 toStation）。
-                // 这里 fromId 是换乘边的终点，即 toStation，所以正确。
-                // 但为了保险，确保 segmentStationIds 为空，且不丢失站点。
+                html += `${t.outTransferHint}：${fromStation.name} → ${toStation.name}<br>`;
                 segmentStationIds = [];
             }
             else if (edge.edgeType === 'portal') {
                 flushSegment();
                 currentEdgeType = 'portal';
                 currentLine = null;
-                html += `传送门：${edge.portalSourceDim} → ${edge.portalTargetDim}<br>`;
+                const fromDim = translateDimension(edge.portalSourceDim, currentLang);
+                const toDim = translateDimension(edge.portalTargetDim, currentLang);
+                html += `${t.portalHint}：${fromDim} → ${toDim}<br>`;
                 segmentStationIds = [];
             }
         }
-        // 最后一段 flush
         flushSegment();
 
         html += `</div>`;
-//        html += `<div style="margin-top: 8px; font-size: 12px; color: gray;">总时间权重: ${dist.get(endStation.id).toFixed(1)} 秒（基于线路类型速度）</div>`;
+        html += `<div style="margin-top: 8px; font-size: 12px; color: gray;">${t.estTime}: ${dist.get(endStation.id).toFixed(1)} ${t.seconds}</div>`;
         document.getElementById('planResult').innerHTML = html;
     }
 
     async function renderAdminLists() {
+        const t = i18n[currentLang];
+        // 站点列表
         const stationDiv = document.getElementById('stationListAdmin');
         stationDiv.innerHTML = '';
         stations.forEach(s => {
+            const dimDisplay = translateDimension(s.dimension, currentLang);
             const div = document.createElement('div');
             div.className = 'station-item';
-            div.innerHTML = `<strong>${s.name}</strong> (${s.x}, ${s.z})<span>维度: ${s.dimension} | ID: ${s.id}</span>`;
+            div.innerHTML = `<strong>${s.name}</strong> (${s.x}, ${s.z})<span>${t.dimensionLabel} ${dimDisplay} | ID: ${s.id}</span>`;
             stationDiv.appendChild(div);
         });
+        // 线路列表
         const lineDiv = document.getElementById('lineListAdmin');
         lineDiv.innerHTML = '';
         lines.forEach(l => {
             const stationNames = l.station_order.map(id => stations.find(s => s.id === id)?.name).join(' → ');
             const loopIcon = l.is_loop ? '🔄 ' : '';
             const portalCount = (l.portals || []).length;
+            const typeDisplay = translateLineType(l.type, currentLang);
             const div = document.createElement('div');
             div.className = 'line-item';
-            div.innerHTML = `<div><span class="color-preview" style="background:${l.color};"></span>${loopIcon}<strong>${l.name}</strong> (${l.type})<br><small>运营集团: ${l.operator || '无'} | 站点: ${stationNames}<br>传送门: ${portalCount}</small></div>
-                            <span><button class="small-btn editLineBtn" data-id="${l.id}">编辑</button>
-                            <button class="small-btn danger delLineBtn" data-id="${l.id}">删除</button></span>`;
+            div.innerHTML = `<div><span class="color-preview" style="background:${l.color};"></span>${loopIcon}<strong>${l.name}</strong> (${typeDisplay})<br><small>${t.operatorLabel} ${l.operator || t.noOperator} | ${t.stationsLabel} ${stationNames}<br>${t.portalsLabel} ${portalCount}</small></div>
+                            <span><button class="small-btn editLineBtn" data-id="${l.id}">${t.editLine}</button>
+                            <button class="small-btn danger delLineBtn" data-id="${l.id}">${t.deleteLine}</button></span>`;
             lineDiv.appendChild(div);
         });
+        // 运营商列表
         const operatorDiv = document.getElementById('operatorListAdmin');
         operatorDiv.innerHTML = '';
         operators.forEach(op => {
             const div = document.createElement('div');
             div.className = 'operator-item';
-            // 修改图标显示逻辑：支持 Base64 DataURL
             let iconHtml = '<span class="operator-icon" style="opacity:0.3;"> </span>';
             if (op.icon) {
                 if (op.icon.startsWith('http') || op.icon.startsWith('data:image')) {
@@ -1326,18 +1451,21 @@
             div.innerHTML = `<div>${iconHtml}<strong>${op.name}</strong></div><span>ID: ${op.id}</span>`;
             operatorDiv.appendChild(div);
         });
+        // 换乘列表
         const transferDiv = document.getElementById('transferListAdmin');
         transferDiv.innerHTML = '';
-        transfers.forEach(t => {
-            const from = stations.find(s => s.id === t.from_station);
-            const to = stations.find(s => s.id === t.to_station);
+        transfers.forEach(tf => {
+            const from = stations.find(s => s.id === tf.from_station);
+            const to = stations.find(s => s.id === tf.to_station);
             if (from && to) {
                 const div = document.createElement('div');
                 div.className = 'transfer-item';
-                div.innerHTML = `<strong>${from.name} ⇄ ${to.name}</strong> <span style="font-size:12px;">步行距离: ${t.weight !== undefined ? t.weight.toFixed(1) : Math.hypot(from.x-to.x, from.z-to.z).toFixed(1)}</span>`;
+                const distValue = tf.weight !== undefined ? tf.weight.toFixed(1) : Math.hypot(from.x - to.x, from.z - to.z).toFixed(1);
+                div.innerHTML = `<strong>${from.name} ⇄ ${to.name}</strong> <span style="font-size:12px;">${t.walkingDistanceLabel} ${distValue}</span>`;
                 transferDiv.appendChild(div);
             }
         });
+        // 重新绑定线路编辑删除事件
         document.querySelectorAll('.editLineBtn').forEach(btn => {
             btn.onclick = () => editLine(parseInt(btn.dataset.id));
         });
@@ -1346,37 +1474,118 @@
         });
     }
 
+    function applyLanguage() {
+        const t = i18n[currentLang];
+        document.getElementById('routePlanTitle').innerHTML = t.routePlanTitle;
+        document.getElementById('startStation').placeholder = t.startPlaceholder;
+        document.getElementById('endStation').placeholder = t.endPlaceholder;
+        document.getElementById('planBtn').innerText = t.planBtn;
+        document.getElementById('adminTitle').innerHTML = t.adminTitle;
+        document.getElementById('stationMgmtTitle').innerHTML = t.stationMgmt;
+        document.getElementById('lineMgmtTitle').innerHTML = t.lineMgmt;
+        document.getElementById('operatorMgmtTitle').innerHTML = t.operatorMgmt;
+        document.getElementById('transferMgmtTitle').innerHTML = t.transferMgmt;
+        document.getElementById('addStationBtn').innerHTML = t.addStation;
+        document.getElementById('editStationBtn').innerHTML = t.editStation;
+        document.getElementById('deleteStationBtn').innerHTML = t.deleteStation;
+        document.getElementById('addLineBtn').innerHTML = t.addLine;
+        document.getElementById('editLineBtn').innerHTML = t.editLine;
+        document.getElementById('deleteLineBtn').innerHTML = t.deleteLine;
+        document.getElementById('orderLineBtn').innerHTML = t.orderLine;
+        document.getElementById('addOperatorBtn').innerHTML = t.addOperator;
+        document.getElementById('editOperatorBtn').innerHTML = t.editOperator;
+        document.getElementById('deleteOperatorBtn').innerHTML = t.deleteOperator;
+        document.getElementById('addTransferBtn').innerHTML = t.addTransfer;
+        document.getElementById('deleteTransferBtn').innerHTML = t.deleteTransfer;
+        document.getElementById('modalConfirm').innerText = t.confirm;
+        document.getElementById('modalCancel').innerText = t.cancel;
+        document.getElementById('dimensionLabel').innerHTML = `🌍 ${t.dimension}：`;
+        document.getElementById('refreshBtn').innerText = t.switchDim;
+        document.getElementById('jumpLabel').innerText = t.jumpTo;
+        document.getElementById('coordDisplay').innerText = t.clickCoord;
+        document.getElementById('mapHint').innerHTML = `💡 ${t.zoomHint} | by woshiikun_1145 | 2.9.0`; //另一个版本设置
+        document.getElementById('headerHint').innerHTML = t.headerHint;
+        
+        // 更新复选框标签
+        const gridLabel = document.getElementById('gridLabel');
+        const axesLabel = document.getElementById('axesLabel');
+        if (gridLabel && gridLabel.firstChild && gridLabel.firstChild.nodeType === Node.ELEMENT_NODE && gridLabel.firstChild.tagName === 'INPUT') {
+            const inputNode = gridLabel.firstChild;
+            gridLabel.innerHTML = '';
+            gridLabel.appendChild(inputNode);
+            gridLabel.appendChild(document.createTextNode(` ${t.showGrid}`));
+        } else {
+            gridLabel.innerHTML = `<input type="checkbox" id="showGridCheckbox"> ${t.showGrid}`;
+        }
+        if (axesLabel && axesLabel.firstChild && axesLabel.firstChild.nodeType === Node.ELEMENT_NODE && axesLabel.firstChild.tagName === 'INPUT') {
+            const inputNode = axesLabel.firstChild;
+            axesLabel.innerHTML = '';
+            axesLabel.appendChild(inputNode);
+            axesLabel.appendChild(document.createTextNode(` ${t.showAxes}`));
+        } else {
+            axesLabel.innerHTML = `<input type="checkbox" id="showAxesCheckbox"> ${t.showAxes}`;
+        }
+        
+        // 更新维度下拉框选项文本
+        const dimSelect = document.getElementById('dimensionSelect');
+        for (let i = 0; i < dimSelect.options.length; i++) {
+            const opt = dimSelect.options[i];
+            const originalValue = opt.value;
+            opt.textContent = translateDimension(originalValue, currentLang);
+        }
+        
+        // 重新绑定checkbox事件
+        const gridCheck = document.getElementById('showGridCheckbox');
+        const axesCheck = document.getElementById('showAxesCheckbox');
+        if (gridCheck) {
+            gridCheck.checked = showGrid;
+            gridCheck.onchange = (e) => {
+                showGrid = e.target.checked;
+                renderMap();
+            };
+        }
+        if (axesCheck) {
+            axesCheck.checked = showAxes;
+            axesCheck.onchange = (e) => {
+                showAxes = e.target.checked;
+                renderMap();
+            };
+        }
+        
+        renderAdminLists();
+    }
+
     async function addStation() {
-        const dimOptions = DIMENSIONS.map(d => `<option value="${d}">${d}</option>`).join('');
-        showModal('添加站点', `
-            <label>站名</label><input id="staName">
-            <label>维度</label>
+        const dimOptions = DIMENSIONS.map(d => `<option value="${d}">${translateDimension(d, currentLang)}</option>`).join('');
+        showModal(i18n[currentLang].addStation, `
+            <label>${currentLang === 'zh' ? '站名' : 'Station Name'}</label><input id="staName">
+            <label>${currentLang === 'zh' ? '维度' : 'Dimension'}</label>
             <select id="staDimension">${dimOptions}</select>
-            <label>X坐标</label><input id="staX" value="0">
-            <label>Z坐标</label><input id="staZ" value="0">
+            <label>X${currentLang === 'zh' ? '坐标' : ' coordinate'}</label><input id="staX" value="0">
+            <label>Z${currentLang === 'zh' ? '坐标' : ' coordinate'}</label><input id="staZ" value="0">
         `, async () => {
             const name = document.getElementById('staName').value;
             const dimension = document.getElementById('staDimension').value;
             const x = parseFloat(document.getElementById('staX').value);
             const z = parseFloat(document.getElementById('staZ').value);
-            if (!name || isNaN(x) || isNaN(z)) { alert('请填写完整'); return; }
+            if (!name || isNaN(x) || isNaN(z)) { alert(currentLang === 'zh' ? '请填写完整' : 'Please fill in all fields'); return; }
             const { error } = await sb.from('stations').insert([{ name, dimension, x, z }]);
             if (error) alert(error.message);
-            else { alert('添加成功'); closeModal(); await loadData(); }
+            else { alert(currentLang === 'zh' ? '添加成功' : 'Added successfully'); closeModal(); await loadData(); }
         });
     }
 
     async function editStation() {
-        if (!stations.length) { alert('暂无站点'); return; }
+        if (!stations.length) { alert(currentLang === 'zh' ? '暂无站点' : 'No stations'); return; }
         const stationOptions = stations.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-        const dimOptions = DIMENSIONS.map(d => `<option value="${d}">${d}</option>`).join('');
-        showModal('编辑站点', `
-            <label>选择站点</label>
+        const dimOptions = DIMENSIONS.map(d => `<option value="${d}">${translateDimension(d, currentLang)}</option>`).join('');
+        showModal(i18n[currentLang].editStation, `
+            <label>${currentLang === 'zh' ? '选择站点' : 'Select Station'}</label>
             <select id="staId">${stationOptions}</select>
-            <label>新站名</label><input id="staName">
-            <label>新X坐标</label><input id="staX">
-            <label>新Z坐标</label><input id="staZ">
-            <label>新维度</label>
+            <label>${currentLang === 'zh' ? '新站名' : 'New Name'}</label><input id="staName">
+            <label>${currentLang === 'zh' ? '新X坐标' : 'New X'}</label><input id="staX">
+            <label>${currentLang === 'zh' ? '新Z坐标' : 'New Z'}</label><input id="staZ">
+            <label>${currentLang === 'zh' ? '新维度' : 'New Dimension'}</label>
             <select id="staDimension">${dimOptions}</select>
         `, async () => {
             const id = document.getElementById('staId').value;
@@ -1384,10 +1593,10 @@
             const x = parseFloat(document.getElementById('staX').value);
             const z = parseFloat(document.getElementById('staZ').value);
             const dimension = document.getElementById('staDimension').value;
-            if (!name || isNaN(x) || isNaN(z)) { alert('请填写完整'); return; }
+            if (!name || isNaN(x) || isNaN(z)) { alert(currentLang === 'zh' ? '请填写完整' : 'Please fill in all fields'); return; }
             const { error } = await sb.from('stations').update({ name, x, z, dimension }).eq('id', id);
             if (error) alert(error.message);
-            else { alert('编辑成功'); closeModal(); await loadData(); }
+            else { alert(currentLang === 'zh' ? '编辑成功' : 'Edited successfully'); closeModal(); await loadData(); }
         });
         const select = document.getElementById('staId');
         const loadStation = () => {
@@ -1404,10 +1613,10 @@
     }
 
     async function deleteStation() {
-        if (!stations.length) { alert('暂无站点'); return; }
-        showModal('删除站点', `<label>选择站点</label><select id="staId">${stations.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}</select>`, async () => {
+        if (!stations.length) { alert(currentLang === 'zh' ? '暂无站点' : 'No stations'); return; }
+        showModal(i18n[currentLang].deleteStation, `<label>${currentLang === 'zh' ? '选择站点' : 'Select Station'}</label><select id="staId">${stations.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}</select>`, async () => {
             const id = document.getElementById('staId').value;
-            if (!confirm('删除站点将从所有线路中移除，确定吗？')) return;
+            if (!confirm(currentLang === 'zh' ? '删除站点将从所有线路中移除，确定吗？' : 'Delete station? It will be removed from all lines.')) return;
             for (const line of lines) {
                 if (line.station_order.includes(parseInt(id))) {
                     const newOrder = line.station_order.filter(sid => sid != id);
@@ -1417,11 +1626,10 @@
             await sb.from('transfers').delete().or(`from_station.eq.${id},to_station.eq.${id}`);
             const { error } = await sb.from('stations').delete().eq('id', id);
             if (error) alert(error.message);
-            else { alert('删除成功'); closeModal(); await loadData(); }
+            else { alert(currentLang === 'zh' ? '删除成功' : 'Deleted'); closeModal(); await loadData(); }
         });
     }
 
-    // 折点编辑器函数
     function renderBreakpointsEditor(selectedStationIds, existingBreakpoints) {
         const segments = [];
         for (let i = 0; i < selectedStationIds.length - 1; i++) {
@@ -1432,17 +1640,17 @@
             const bpList = (existingBreakpoints || []).filter(bp => bp.segment === i);
             segments.push(`
                 <div class="breakpoints-section" data-segment="${i}">
-                    <div class="segment-title">第 ${i+1} 段：${fromName} → ${toName}</div>
+                    <div class="segment-title">${currentLang === 'zh' ? '第' : 'Segment'} ${i+1}：${fromName} → ${toName}</div>
                     <div id="bp-list-${i}" class="bp-list">
                         ${bpList.map((bp, idx) => `
                             <div class="bp-item" data-idx="${idx}">
                                 <input type="number" id="bp_${i}_${idx}_x" name="bp_${i}_${idx}_x" class="bp-x" value="${bp.x}" placeholder="X" style="width:70px">
                                 <input type="number" id="bp_${i}_${idx}_z" name="bp_${i}_${idx}_z" class="bp-z" value="${bp.z}" placeholder="Z" style="width:70px">
-                                <button type="button" class="small-btn remove-bp">删除</button>
+                                <button type="button" class="small-btn remove-bp">${currentLang === 'zh' ? '删除' : 'Del'}</button>
                             </div>
                         `).join('')}
                     </div>
-                    <button type="button" class="small-btn add-bp" data-segment="${i}">+ 添加折点</button>
+                    <button type="button" class="small-btn add-bp" data-segment="${i}">+ ${currentLang === 'zh' ? '添加折点' : 'Add Breakpoint'}</button>
                 </div>
             `);
         }
@@ -1482,7 +1690,7 @@
                 newItem.innerHTML = `
                     <input type="number" id="bp_${segment}_${idx}_x" name="bp_${segment}_${idx}_x" class="bp-x" placeholder="X" style="width:70px">
                     <input type="number" id="bp_${segment}_${idx}_z" name="bp_${segment}_${idx}_z" class="bp-z" placeholder="Z" style="width:70px">
-                    <button type="button" class="small-btn remove-bp">删除</button>
+                    <button type="button" class="small-btn remove-bp">${currentLang === 'zh' ? '删除' : 'Del'}</button>
                 `;
                 listDiv.appendChild(newItem);
                 bindRemoveEvents();
@@ -1503,22 +1711,22 @@
         const lineTypes = ['单轨铁路', '双轨铁路', '蓝冰船', '长距铁路'];
         const safeStations = Array.isArray(stations) ? stations : [];
         const safeOperators = Array.isArray(operators) ? operators : [];
-        const stationOptions = safeStations.map(s => `<option value="${s.id}">${s.name} (${s.dimension})</option>`).join('');
+        const stationOptions = safeStations.map(s => `<option value="${s.id}">${s.name} (${translateDimension(s.dimension, currentLang)})</option>`).join('');
         const operatorOptions = safeOperators.map(op => `<option value="${op.name}">${op.name}</option>`).join('');
-        const dimOptions = DIMENSIONS.map(d => `<option value="${d}">${d}</option>`).join('');
-        showModal('添加线路', `
-            <label>线路名称</label><input id="lineName">
-            <label>线路类型</label><select id="lineType">${lineTypes.map(t => `<option value="${t}">${t}</option>`).join('')}</select>
-            <label>线路颜色</label><input type="color" id="lineColor" value="#888888">
-            <label>运营集团</label><select id="operator"><option value="">无</option>${operatorOptions}</select>
-            <label>线路所属维度</label>
+        const dimOptions = DIMENSIONS.map(d => `<option value="${d}">${translateDimension(d, currentLang)}</option>`).join('');
+        showModal(i18n[currentLang].addLine, `
+            <label>${currentLang === 'zh' ? '线路名称' : 'Line Name'}</label><input id="lineName">
+            <label>${currentLang === 'zh' ? '线路类型' : 'Type'}</label><select id="lineType">${lineTypes.map(t => `<option value="${t}">${translateLineType(t, currentLang)}</option>`).join('')}</select>
+            <label>${currentLang === 'zh' ? '线路颜色' : 'Color'}</label><input type="color" id="lineColor" value="#888888">
+            <label>${currentLang === 'zh' ? '运营集团' : 'Operator'}</label><select id="operator"><option value="">${i18n[currentLang].noOperator}</option>${operatorOptions}</select>
+            <label>${currentLang === 'zh' ? '线路所属维度' : 'Dimension'}</label>
             <select id="lineDimension">${dimOptions}</select>
-            <label><input type="checkbox" id="isLoopCheckbox"> 环线（首尾相连）</label>
-            <label>站点顺序 (按住Ctrl多选，按顺序点击选择)</label>
+            <label><input type="checkbox" id="isLoopCheckbox"> ${currentLang === 'zh' ? '环线（首尾相连）' : 'Loop line'}</label>
+            <label>${currentLang === 'zh' ? '站点顺序 (按住Ctrl多选，按顺序点击选择)' : 'Station order (Ctrl+click to select in order)'}</label>
             <select id="stationOrderSelect" multiple size="6">${stationOptions}</select>
             <div id="breakpointsEditorArea"></div>
             <div id="portalsEditorArea"></div>
-            <small>提示：折点用于弯曲线路，传送门仅在不同维度线段上可用（末地、异次元除外）。</small>
+            <small>${currentLang === 'zh' ? '提示：折点用于弯曲线路，传送门仅在不同维度线段上可用（末地、异次元除外）。' : 'Tip: Breakpoints bend the line; portals only for different dimensions (except End/OtherDimension).'}</small>
         `, async () => {
             const name = document.getElementById('lineName').value;
             const type = document.getElementById('lineType').value;
@@ -1528,12 +1736,11 @@
             const isLoop = document.getElementById('isLoopCheckbox').checked;
             const selected = Array.from(document.getElementById('stationOrderSelect').selectedOptions);
             const station_order = selected.map(opt => parseInt(opt.value));
-            if (!name || !type || !color) { alert('请填写完整'); return; }
-            if (station_order.length < 2) { alert('至少选择两个站点'); return; }
-            // 检查站点维度一致性
+            if (!name || !type || !color) { alert(currentLang === 'zh' ? '请填写完整' : 'Please fill all fields'); return; }
+            if (station_order.length < 2) { alert(currentLang === 'zh' ? '至少选择两个站点' : 'Select at least 2 stations'); return; }
             const stationsInLine = station_order.map(id => safeStations.find(s => s.id === id));
             if (stationsInLine.some(s => s.dimension !== dimension)) {
-                alert('所选站点必须与线路维度一致');
+                alert(currentLang === 'zh' ? '所选站点必须与线路维度一致' : 'Stations must be in the same dimension as the line');
                 return;
             }
             const breakpoints = collectBreakpointsFromEditor(station_order);
@@ -1552,7 +1759,7 @@
                 portals: portals
             }]);
             if (error) alert(error.message);
-            else { alert('添加成功'); closeModal(); await loadData(); }
+            else { alert(currentLang === 'zh' ? '添加成功' : 'Added'); closeModal(); await loadData(); }
         });
         setTimeout(() => {
             const stationSelect = document.getElementById('stationOrderSelect');
@@ -1562,7 +1769,7 @@
                 const selected = Array.from(stationSelect.selectedOptions);
                 const ids = selected.map(opt => parseInt(opt.value));
                 if (ids.length < 2) {
-                    breakpointsArea.innerHTML = '<div style="color:gray;">选择至少两个站点以添加折点</div>';
+                    breakpointsArea.innerHTML = '<div style="color:gray;">' + (currentLang === 'zh' ? '选择至少两个站点以添加折点' : 'Select at least 2 stations to add breakpoints') + '</div>';
                     portalsArea.innerHTML = '';
                     return;
                 }
@@ -1575,13 +1782,13 @@
                     const to = stationsInOrder[i+1];
                     if (from.dimension !== to.dimension && CROSS_DIMENSION_ALLOWED(from.dimension, to.dimension)) {
                         portalsHtml += `<div style="border:1px solid #ddd; border-radius:12px; padding:8px; margin:8px 0;">
-                            <div class="segment-title">传送门 (跨维度) ${i+1}: ${from.name} (${from.dimension}) → ${to.name} (${to.dimension})</div>
+                            <div class="segment-title">${currentLang === 'zh' ? '传送门 (跨维度)' : 'Portal (cross-dimension)'} ${i+1}: ${from.name} (${translateDimension(from.dimension, currentLang)}) → ${to.name} (${translateDimension(to.dimension, currentLang)})</div>
                             <div id="portalsList_${i}"></div>
-                            <button type="button" class="small-btn addPortalBtn" data-seg="${i}">➕ 添加传送门</button>
+                            <button type="button" class="small-btn addPortalBtn" data-seg="${i}">➕ ${currentLang === 'zh' ? '添加传送门' : 'Add Portal'}</button>
                             <input type="hidden" id="portalsData_${i}" value="[]">
                         </div>`;
                     } else {
-                        portalsHtml += `<div style="margin:8px 0; color:gray;">线段 ${i+1} 两端维度相同或不允许跨维度，无需传送门。</div>`;
+                        portalsHtml += `<div style="margin:8px 0; color:gray;">${currentLang === 'zh' ? '线段两端维度相同或不允许跨维度，无需传送门。' : 'Same dimension or no cross-dimension allowed, no portal needed.'}</div>`;
                     }
                 }
                 portalsArea.innerHTML = portalsHtml;
@@ -1604,9 +1811,9 @@
                         div.className = 'bp-item';
                         div.innerHTML = `
                             <span>位置: X=${p.x.toFixed(1)}, Z=${p.z.toFixed(1)}</span>
-                            <span>目标维度: ${p.targetDim}</span>
+                            <span>目标维度: ${translateDimension(p.targetDim, currentLang)}</span>
                             <span>目标坐标: (${p.targetX.toFixed(1)}, ${p.targetZ.toFixed(1)})</span>
-                            <button class="small-btn removePortalBtn" data-idx="${idx}">删除</button>
+                            <button class="small-btn removePortalBtn" data-idx="${idx}">${currentLang === 'zh' ? '删除' : 'Del'}</button>
                         `;
                         container.appendChild(div);
                     });
@@ -1636,29 +1843,29 @@
                         targetZ = midZ;
                     }
                     const modalHtml = `
-                        <label>传送门位置 X</label><input id="portalX" type="number" step="any" value="${midX}">
-                        <label>传送门位置 Z</label><input id="portalZ" type="number" step="any" value="${midZ}">
-                        <label>目标维度</label>
+                        <label>${currentLang === 'zh' ? '传送门位置 X' : 'Portal X'}</label><input id="portalX" type="number" step="any" value="${midX}">
+                        <label>${currentLang === 'zh' ? '传送门位置 Z' : 'Portal Z'}</label><input id="portalZ" type="number" step="any" value="${midZ}">
+                        <label>${currentLang === 'zh' ? '目标维度' : 'Target Dimension'}</label>
                         <select id="targetDim">
-                            <option value="主世界" ${targetDim==='主世界'?'selected':''}>主世界</option>
-                            <option value="下界" ${targetDim==='下界'?'selected':''}>下界</option>
-                            <option value="资源世界" ${targetDim==='资源世界'?'selected':''}>资源世界</option>
+                            <option value="主世界" ${targetDim==='主世界'?'selected':''}>${translateDimension('主世界', currentLang)}</option>
+                            <option value="下界" ${targetDim==='下界'?'selected':''}>${translateDimension('下界', currentLang)}</option>
+                            <option value="资源世界" ${targetDim==='资源世界'?'selected':''}>${translateDimension('资源世界', currentLang)}</option>
                         </select>
-                        <label>目标坐标 X</label><input id="targetX" type="number" step="any" value="${targetX}">
-                        <label>目标坐标 Z</label><input id="targetZ" type="number" step="any" value="${targetZ}">
-                        <small>资源世界只能作为起点，目标不能是资源世界。主世界↔下界可自动换算。</small>
+                        <label>${currentLang === 'zh' ? '目标坐标 X' : 'Target X'}</label><input id="targetX" type="number" step="any" value="${targetX}">
+                        <label>${currentLang === 'zh' ? '目标坐标 Z' : 'Target Z'}</label><input id="targetZ" type="number" step="any" value="${targetZ}">
+                        <small>${currentLang === 'zh' ? '资源世界只能作为起点，目标不能是资源世界。主世界↔下界可自动换算。' : 'Resource world can only be source, not target. Overworld<->Nether auto converts.'}</small>
                     `;
-                    showModal('添加传送门', modalHtml, () => {
+                    showModal(currentLang === 'zh' ? '添加传送门' : 'Add Portal', modalHtml, () => {
                         const x = parseFloat(document.getElementById('portalX').value);
                         const z = parseFloat(document.getElementById('portalZ').value);
                         const tDim = document.getElementById('targetDim').value;
                         let tX = parseFloat(document.getElementById('targetX').value);
                         let tZ = parseFloat(document.getElementById('targetZ').value);
-                        if (isNaN(x) || isNaN(z) || isNaN(tX) || isNaN(tZ)) { alert('坐标无效'); return; }
-                        if (fromStation.dimension === '资源世界' && tDim === '资源世界') { alert('资源世界不能作为传送门目标'); return; }
-                        if (fromStation.dimension !== '资源世界' && tDim === '资源世界') { alert('只有资源世界可以传出，不能传入资源世界'); return; }
+                        if (isNaN(x) || isNaN(z) || isNaN(tX) || isNaN(tZ)) { alert(currentLang === 'zh' ? '坐标无效' : 'Invalid coordinates'); return; }
+                        if (fromStation.dimension === '资源世界' && tDim === '资源世界') { alert(currentLang === 'zh' ? '资源世界不能作为传送门目标' : 'Resource world cannot be portal target'); return; }
+                        if (fromStation.dimension !== '资源世界' && tDim === '资源世界') { alert(currentLang === 'zh' ? '只有资源世界可以传出，不能传入资源世界' : 'Only resource world can be source, cannot target resource world'); return; }
                         if (!CROSS_DIMENSION_ALLOWED(fromStation.dimension, tDim)) {
-                            alert('末地和异次元不允许跨维度传送');
+                            alert(currentLang === 'zh' ? '末地和异次元不允许跨维度传送' : 'End and OtherDimension cannot have portals');
                             return;
                         }
                         portals.push({ segment: segIndex, x, z, targetDim: tDim, targetX: tX, targetZ: tZ });
@@ -1680,23 +1887,23 @@
         const lineTypes = ['单轨铁路', '双轨铁路', '蓝冰船', '长距铁路'];
         const safeStations = Array.isArray(stations) ? stations : [];
         const safeOperators = Array.isArray(operators) ? operators : [];
-        const stationOptions = safeStations.map(s => `<option value="${s.id}">${s.name} (${s.dimension})</option>`).join('');
+        const stationOptions = safeStations.map(s => `<option value="${s.id}">${s.name} (${translateDimension(s.dimension, currentLang)})</option>`).join('');
         const operatorOptions = safeOperators.map(op => `<option value="${op.name}" ${line.operator===op.name ? 'selected' : ''}>${op.name}</option>`).join('');
-        const dimOptions = DIMENSIONS.map(d => `<option value="${d}" ${line.dimension===d ? 'selected' : ''}>${d}</option>`).join('');
+        const dimOptions = DIMENSIONS.map(d => `<option value="${d}" ${line.dimension===d ? 'selected' : ''}>${translateDimension(d, currentLang)}</option>`).join('');
         
-        showModal('编辑线路', `
-            <label>线路名称</label><input id="lineName" value="${line.name}">
-            <label>线路类型</label><select id="lineType">${lineTypes.map(t => `<option value="${t}" ${line.type===t ? 'selected' : ''}>${t}</option>`).join('')}</select>
-            <label>线路颜色</label><input type="color" id="lineColor" value="${line.color}">
-            <label>运营集团</label><select id="operator"><option value="">无</option>${operatorOptions}</select>
-            <label>线路所属维度</label>
+        showModal(i18n[currentLang].editLine, `
+            <label>${currentLang === 'zh' ? '线路名称' : 'Line Name'}</label><input id="lineName" value="${line.name}">
+            <label>${currentLang === 'zh' ? '线路类型' : 'Type'}</label><select id="lineType">${lineTypes.map(t => `<option value="${t}" ${line.type===t ? 'selected' : ''}>${translateLineType(t, currentLang)}</option>`).join('')}</select>
+            <label>${currentLang === 'zh' ? '线路颜色' : 'Color'}</label><input type="color" id="lineColor" value="${line.color}">
+            <label>${currentLang === 'zh' ? '运营集团' : 'Operator'}</label><select id="operator"><option value="">${i18n[currentLang].noOperator}</option>${operatorOptions}</select>
+            <label>${currentLang === 'zh' ? '线路所属维度' : 'Dimension'}</label>
             <select id="lineDimension">${dimOptions}</select>
-            <label><input type="checkbox" id="isLoopCheckbox" ${line.is_loop ? 'checked' : ''}> 环线（首尾相连）</label>
-            <label>站点顺序 (按住Ctrl多选，按顺序点击选择，可增删站点)</label>
+            <label><input type="checkbox" id="isLoopCheckbox" ${line.is_loop ? 'checked' : ''}> ${currentLang === 'zh' ? '环线（首尾相连）' : 'Loop line'}</label>
+            <label>${currentLang === 'zh' ? '站点顺序 (按住Ctrl多选，按顺序点击选择，可增删站点)' : 'Station order (Ctrl+click, can add/remove)'}</label>
             <select id="stationOrderSelect" multiple size="6">${stationOptions}</select>
             <div id="breakpointsEditorArea"></div>
             <div id="portalsEditorArea"></div>
-            <small>提示：折点用于弯曲线路，传送门仅在不同维度线段上可用（末地、异次元除外）。</small>
+            <small>${currentLang === 'zh' ? '提示：折点用于弯曲线路，传送门仅在不同维度线段上可用（末地、异次元除外）。' : 'Tip: Breakpoints bend the line; portals only for different dimensions (except End/OtherDimension).'}</small>
         `, async () => {
             const name = document.getElementById('lineName').value;
             const type = document.getElementById('lineType').value;
@@ -1706,11 +1913,11 @@
             const isLoop = document.getElementById('isLoopCheckbox').checked;
             const selected = Array.from(document.getElementById('stationOrderSelect').selectedOptions);
             const station_order = selected.map(opt => parseInt(opt.value));
-            if (!name || !type || !color) { alert('请填写完整'); return; }
-            if (station_order.length < 2) { alert('至少选择两个站点'); return; }
+            if (!name || !type || !color) { alert(currentLang === 'zh' ? '请填写完整' : 'Please fill all fields'); return; }
+            if (station_order.length < 2) { alert(currentLang === 'zh' ? '至少选择两个站点' : 'Select at least 2 stations'); return; }
             const stationsInLine = station_order.map(id => safeStations.find(s => s.id === id));
             if (stationsInLine.some(s => s.dimension !== dimension)) {
-                alert('所选站点必须与线路维度一致');
+                alert(currentLang === 'zh' ? '所选站点必须与线路维度一致' : 'Stations must be in the same dimension as the line');
                 return;
             }
             const breakpoints = collectBreakpointsFromEditor(station_order);
@@ -1729,7 +1936,7 @@
                 portals: portals
             }).eq('id', lineId);
             if (error) alert(error.message);
-            else { alert('编辑成功'); closeModal(); await loadData(); }
+            else { alert(currentLang === 'zh' ? '编辑成功' : 'Edited'); closeModal(); await loadData(); }
         });
         setTimeout(() => {
             const stationSelect = document.getElementById('stationOrderSelect');
@@ -1755,7 +1962,7 @@
                 const selected = Array.from(stationSelect.selectedOptions);
                 const ids = selected.map(opt => parseInt(opt.value));
                 if (ids.length < 2) {
-                    breakpointsArea.innerHTML = '<div style="color:gray;">选择至少两个站点以添加折点</div>';
+                    breakpointsArea.innerHTML = '<div style="color:gray;">' + (currentLang === 'zh' ? '选择至少两个站点以添加折点' : 'Select at least 2 stations to add breakpoints') + '</div>';
                     portalsArea.innerHTML = '';
                     return;
                 }
@@ -1769,13 +1976,13 @@
                     if (from.dimension !== to.dimension && CROSS_DIMENSION_ALLOWED(from.dimension, to.dimension)) {
                         const existingPortals = (line.portals || []).filter(p => p.segment === i);
                         portalsHtml += `<div style="border:1px solid #ddd; border-radius:12px; padding:8px; margin:8px 0;">
-                            <div class="segment-title">传送门 (跨维度) ${i+1}: ${from.name} (${from.dimension}) → ${to.name} (${to.dimension})</div>
+                            <div class="segment-title">${currentLang === 'zh' ? '传送门 (跨维度)' : 'Portal (cross-dimension)'} ${i+1}: ${from.name} (${translateDimension(from.dimension, currentLang)}) → ${to.name} (${translateDimension(to.dimension, currentLang)})</div>
                             <div id="portalsList_${i}"></div>
-                            <button type="button" class="small-btn addPortalBtn" data-seg="${i}">➕ 添加传送门</button>
+                            <button type="button" class="small-btn addPortalBtn" data-seg="${i}">➕ ${currentLang === 'zh' ? '添加传送门' : 'Add Portal'}</button>
                             <input type="hidden" id="portalsData_${i}" value='${JSON.stringify(existingPortals)}'>
                         </div>`;
                     } else {
-                        portalsHtml += `<div style="margin:8px 0; color:gray;">线段 ${i+1} 两端维度相同或不允许跨维度，无需传送门。</div>`;
+                        portalsHtml += `<div style="margin:8px 0; color:gray;">${currentLang === 'zh' ? '线段两端维度相同或不允许跨维度，无需传送门。' : 'Same dimension or no cross-dimension allowed, no portal needed.'}</div>`;
                     }
                 }
                 portalsArea.innerHTML = portalsHtml;
@@ -1798,9 +2005,9 @@
                         div.className = 'bp-item';
                         div.innerHTML = `
                             <span>位置: X=${p.x.toFixed(1)}, Z=${p.z.toFixed(1)}</span>
-                            <span>目标维度: ${p.targetDim}</span>
+                            <span>目标维度: ${translateDimension(p.targetDim, currentLang)}</span>
                             <span>目标坐标: (${p.targetX.toFixed(1)}, ${p.targetZ.toFixed(1)})</span>
-                            <button class="small-btn removePortalBtn" data-idx="${idx}">删除</button>
+                            <button class="small-btn removePortalBtn" data-idx="${idx}">${currentLang === 'zh' ? '删除' : 'Del'}</button>
                         `;
                         container.appendChild(div);
                     });
@@ -1830,28 +2037,28 @@
                         targetZ = midZ;
                     }
                     const modalHtml = `
-                        <label>传送门位置 X</label><input id="portalX" type="number" step="any" value="${midX}">
-                        <label>传送门位置 Z</label><input id="portalZ" type="number" step="any" value="${midZ}">
-                        <label>目标维度</label>
+                        <label>${currentLang === 'zh' ? '传送门位置 X' : 'Portal X'}</label><input id="portalX" type="number" step="any" value="${midX}">
+                        <label>${currentLang === 'zh' ? '传送门位置 Z' : 'Portal Z'}</label><input id="portalZ" type="number" step="any" value="${midZ}">
+                        <label>${currentLang === 'zh' ? '目标维度' : 'Target Dimension'}</label>
                         <select id="targetDim">
-                            <option value="主世界" ${targetDim==='主世界'?'selected':''}>主世界</option>
-                            <option value="下界" ${targetDim==='下界'?'selected':''}>下界</option>
-                            <option value="资源世界" ${targetDim==='资源世界'?'selected':''}>资源世界</option>
+                            <option value="主世界" ${targetDim==='主世界'?'selected':''}>${translateDimension('主世界', currentLang)}</option>
+                            <option value="下界" ${targetDim==='下界'?'selected':''}>${translateDimension('下界', currentLang)}</option>
+                            <option value="资源世界" ${targetDim==='资源世界'?'selected':''}>${translateDimension('资源世界', currentLang)}</option>
                         </select>
-                        <label>目标坐标 X</label><input id="targetX" type="number" step="any" value="${targetX}">
-                        <label>目标坐标 Z</label><input id="targetZ" type="number" step="any" value="${targetZ}">
+                        <label>${currentLang === 'zh' ? '目标坐标 X' : 'Target X'}</label><input id="targetX" type="number" step="any" value="${targetX}">
+                        <label>${currentLang === 'zh' ? '目标坐标 Z' : 'Target Z'}</label><input id="targetZ" type="number" step="any" value="${targetZ}">
                     `;
-                    showModal('添加传送门', modalHtml, () => {
+                    showModal(currentLang === 'zh' ? '添加传送门' : 'Add Portal', modalHtml, () => {
                         const x = parseFloat(document.getElementById('portalX').value);
                         const z = parseFloat(document.getElementById('portalZ').value);
                         const tDim = document.getElementById('targetDim').value;
                         let tX = parseFloat(document.getElementById('targetX').value);
                         let tZ = parseFloat(document.getElementById('targetZ').value);
-                        if (isNaN(x) || isNaN(z) || isNaN(tX) || isNaN(tZ)) { alert('坐标无效'); return; }
-                        if (fromStation.dimension === '资源世界' && tDim === '资源世界') { alert('资源世界不能作为传送门目标'); return; }
-                        if (fromStation.dimension !== '资源世界' && tDim === '资源世界') { alert('只有资源世界可以传出，不能传入资源世界'); return; }
+                        if (isNaN(x) || isNaN(z) || isNaN(tX) || isNaN(tZ)) { alert(currentLang === 'zh' ? '坐标无效' : 'Invalid coordinates'); return; }
+                        if (fromStation.dimension === '资源世界' && tDim === '资源世界') { alert(currentLang === 'zh' ? '资源世界不能作为传送门目标' : 'Resource world cannot be portal target'); return; }
+                        if (fromStation.dimension !== '资源世界' && tDim === '资源世界') { alert(currentLang === 'zh' ? '只有资源世界可以传出，不能传入资源世界' : 'Only resource world can be source, cannot target resource world'); return; }
                         if (!CROSS_DIMENSION_ALLOWED(fromStation.dimension, tDim)) {
-                            alert('末地和异次元不允许跨维度传送');
+                            alert(currentLang === 'zh' ? '末地和异次元不允许跨维度传送' : 'End and OtherDimension cannot have portals');
                             return;
                         }
                         portals.push({ segment: segIndex, x, z, targetDim: tDim, targetX: tX, targetZ: tZ });
@@ -1868,16 +2075,16 @@
     }
 
     async function deleteLine(lineId) {
-        if (!confirm('确定删除该线路吗？')) return;
+        if (!confirm(currentLang === 'zh' ? '确定删除该线路吗？' : 'Delete this line?')) return;
         const { error } = await sb.from('lines').delete().eq('id', lineId);
         if (error) alert(error.message);
-        else { alert('删除成功'); await loadData(); }
+        else { alert(currentLang === 'zh' ? '删除成功' : 'Deleted'); await loadData(); }
     }
 
     async function orderLine() {
-        if (!lines.length) { alert('暂无线路'); return; }
-        showModal('调整线路站点顺序', `
-            <label>选择线路</label>
+        if (!lines.length) { alert(currentLang === 'zh' ? '暂无线路' : 'No lines'); return; }
+        showModal(i18n[currentLang].orderLine, `
+            <label>${currentLang === 'zh' ? '选择线路' : 'Select Line'}</label>
             <select id="lineSelect">${lines.map(l => `<option value="${l.id}">${l.name}</option>`).join('')}</select>
             <div id="orderContainer"></div>
         `, null, true);
@@ -1898,7 +2105,7 @@
                         </div>
                     `).join('')}
                 </div>
-                <button id="saveOrderBtn" class="small-btn">保存顺序</button>
+                <button id="saveOrderBtn" class="small-btn">${currentLang === 'zh' ? '保存顺序' : 'Save Order'}</button>
             `;
             document.querySelectorAll('.upBtn').forEach(btn => {
                 btn.onclick = () => {
@@ -1921,7 +2128,7 @@
             document.getElementById('saveOrderBtn').onclick = async () => {
                 const { error } = await sb.from('lines').update({ station_order: stationIds }).eq('id', lineSelect.value);
                 if (error) alert(error.message);
-                else { alert('顺序已更新'); closeModal(); await loadData(); }
+                else { alert(currentLang === 'zh' ? '顺序已更新' : 'Order updated'); closeModal(); await loadData(); }
             };
         }
         lineSelect.onchange = () => {
@@ -1932,83 +2139,83 @@
     }
 
     async function addOperator() {
-        showModal('添加运营集团', `
-            <label>集团名称</label><input id="opName">
-            <label>集团图标</label><input id="opIcon" placeholder="Emoji、图片URL 或 Base64 DataURL（例如 data:image/png;base64,...）">
-            <small>支持 Emoji、图片URL 或 Base64 字符串。</small>
+        showModal(i18n[currentLang].addOperator, `
+            <label>${currentLang === 'zh' ? '集团名称' : 'Operator Name'}</label><input id="opName">
+            <label>${currentLang === 'zh' ? '集团图标' : 'Icon'}</label><input id="opIcon" placeholder="Emoji, URL or Base64">
+            <small>${currentLang === 'zh' ? '支持 Emoji、图片URL 或 Base64 字符串。' : 'Supports Emoji, image URL or Base64.'}</small>
         `, async () => {
             const name = document.getElementById('opName').value.trim();
             const icon = document.getElementById('opIcon').value.trim();
-            if (!name) { alert('请填写名称'); return; }
+            if (!name) { alert(currentLang === 'zh' ? '请填写名称' : 'Please enter name'); return; }
             const { error } = await sb.from('operators').insert([{ name, icon: icon || null }]);
             if (error) alert(error.message);
-            else { alert('添加成功'); closeModal(); await loadData(); }
+            else { alert(currentLang === 'zh' ? '添加成功' : 'Added'); closeModal(); await loadData(); }
         });
     }
 
     async function editOperator() {
-        if (!operators.length) { alert('暂无集团'); return; }
+        if (!operators.length) { alert(currentLang === 'zh' ? '暂无集团' : 'No operators'); return; }
         const operatorOptions = operators.map(op => `<option value="${op.id}">${op.name}</option>`).join('');
-        showModal('编辑运营集团', `
-            <label>选择集团</label>
+        showModal(i18n[currentLang].editOperator, `
+            <label>${currentLang === 'zh' ? '选择集团' : 'Select Operator'}</label>
             <select id="editOpSelect">${operatorOptions}</select>
-            <label>新名称</label><input id="newOpName" placeholder="请输入新名称">
-            <label>新图标</label><input id="newOpIcon" placeholder="Emoji、图片URL 或 Base64 DataURL">
-            <small>支持 Emoji、图片URL 或 Base64 字符串。</small>
+            <label>${currentLang === 'zh' ? '新名称' : 'New Name'}</label><input id="newOpName" placeholder="${currentLang === 'zh' ? '请输入新名称' : 'New name'}">
+            <label>${currentLang === 'zh' ? '新图标' : 'New Icon'}</label><input id="newOpIcon" placeholder="Emoji, URL or Base64">
+            <small>${currentLang === 'zh' ? '支持 Emoji、图片URL 或 Base64 字符串。' : 'Supports Emoji, image URL or Base64.'}</small>
         `, async () => {
             const id = document.getElementById('editOpSelect').value;
             const newName = document.getElementById('newOpName').value.trim();
             const newIcon = document.getElementById('newOpIcon').value.trim();
             const oldOp = operators.find(op => op.id == id);
-            if (!oldOp) { alert('未找到该集团'); return; }
+            if (!oldOp) { alert(currentLang === 'zh' ? '未找到该集团' : 'Operator not found'); return; }
             const updateData = {};
             if (newName) updateData.name = newName;
             if (newIcon !== undefined) updateData.icon = newIcon === '' ? null : newIcon;
-            if (Object.keys(updateData).length === 0) { alert('请至少修改一项'); return; }
+            if (Object.keys(updateData).length === 0) { alert(currentLang === 'zh' ? '请至少修改一项' : 'At least one field to update'); return; }
             if (newName) {
                 await sb.from('lines').update({ operator: newName }).eq('operator', oldOp.name);
             }
             const { error } = await sb.from('operators').update(updateData).eq('id', id);
             if (error) alert(error.message);
-            else { alert('修改成功'); closeModal(); await loadData(); }
+            else { alert(currentLang === 'zh' ? '修改成功' : 'Updated'); closeModal(); await loadData(); }
         });
     }
 
     async function deleteOperator() {
-        if (!operators.length) { alert('暂无集团'); return; }
-        showModal('删除运营集团', `<label>选择集团</label><select id="opSelect">${operators.map(op => `<option value="${op.id}">${op.name}</option>`).join('')}</select>`, async () => {
+        if (!operators.length) { alert(currentLang === 'zh' ? '暂无集团' : 'No operators'); return; }
+        showModal(i18n[currentLang].deleteOperator, `<label>${currentLang === 'zh' ? '选择集团' : 'Select Operator'}</label><select id="opSelect">${operators.map(op => `<option value="${op.id}">${op.name}</option>`).join('')}</select>`, async () => {
             const id = document.getElementById('opSelect').value;
             const used = lines.some(l => l.operator === operators.find(op => op.id == id)?.name);
-            if (used) { alert('该集团仍被线路使用，无法删除'); return; }
+            if (used) { alert(currentLang === 'zh' ? '该集团仍被线路使用，无法删除' : 'Operator still used by lines'); return; }
             const { error } = await sb.from('operators').delete().eq('id', id);
             if (error) alert(error.message);
-            else { alert('删除成功'); closeModal(); await loadData(); }
+            else { alert(currentLang === 'zh' ? '删除成功' : 'Deleted'); closeModal(); await loadData(); }
         });
     }
 
     async function addTransfer() {
-        const stationOptions = stations.map(s => `<option value="${s.id}">${s.name} (${s.dimension})</option>`).join('');
-        showModal('添加站外换乘', `
-            <label>起点站点</label>
+        const stationOptions = stations.map(s => `<option value="${s.id}">${s.name} (${translateDimension(s.dimension, currentLang)})</option>`).join('');
+        showModal(i18n[currentLang].addTransfer, `
+            <label>${currentLang === 'zh' ? '起点站点' : 'From Station'}</label>
             <select id="transferFrom">${stationOptions}</select>
-            <label>终点站点</label>
+            <label>${currentLang === 'zh' ? '终点站点' : 'To Station'}</label>
             <select id="transferTo">${stationOptions}</select>
-            <label>步行距离（可选，默认根据坐标自动计算）</label>
-            <input type="number" id="transferWeight" step="0.1" placeholder="留空则自动计算">
-            <small>注意：两站之间可双向换乘，系统会自动处理。</small>
+            <label>${currentLang === 'zh' ? '步行距离（可选，默认根据坐标自动计算）' : 'Walking distance (optional, auto by coordinates)'}</label>
+            <input type="number" id="transferWeight" step="0.1" placeholder="${currentLang === 'zh' ? '留空则自动计算' : 'Auto if empty'}">
+            <small>${currentLang === 'zh' ? '注意：两站之间可双向换乘，系统会自动处理。' : 'Transfer is bidirectional.'}</small>
         `, async () => {
             const from = parseInt(document.getElementById('transferFrom').value);
             const to = parseInt(document.getElementById('transferTo').value);
             let weight = parseFloat(document.getElementById('transferWeight').value);
-            if (from === to) { alert('起点和终点不能相同'); return; }
+            if (from === to) { alert(currentLang === 'zh' ? '起点和终点不能相同' : 'Start and end cannot be same'); return; }
             const fromSt = stations.find(s => s.id === from);
             const toSt = stations.find(s => s.id === to);
             if (!fromSt || !toSt || fromSt.dimension !== toSt.dimension) {
-                alert('两个站点必须属于同一维度');
+                alert(currentLang === 'zh' ? '两个站点必须属于同一维度' : 'Stations must be in the same dimension');
                 return;
             }
             const exists = transfers.some(t => (t.from_station === from && t.to_station === to) || (t.from_station === to && t.to_station === from));
-            if (exists) { alert('该换乘关系已存在'); return; }
+            if (exists) { alert(currentLang === 'zh' ? '该换乘关系已存在' : 'Transfer already exists'); return; }
             if (isNaN(weight)) {
                 weight = Math.hypot(fromSt.x - toSt.x, fromSt.z - toSt.z);
             }
@@ -2019,14 +2226,14 @@
                 dimension: fromSt.dimension
             }]);
             if (error) alert(error.message);
-            else { alert('添加成功'); closeModal(); await loadData(); }
+            else { alert(currentLang === 'zh' ? '添加成功' : 'Added'); closeModal(); await loadData(); }
         });
     }
 
     async function deleteTransfer() {
-        if (!transfers.length) { alert('暂无换乘记录'); return; }
-        showModal('删除站外换乘', `
-            <label>选择换乘关系</label>
+        if (!transfers.length) { alert(currentLang === 'zh' ? '暂无换乘记录' : 'No transfers'); return; }
+        showModal(i18n[currentLang].deleteTransfer, `
+            <label>${currentLang === 'zh' ? '选择换乘关系' : 'Select Transfer'}</label>
             <select id="transferSelect">${transfers.map(t => {
                 const from = stations.find(s => s.id === t.from_station);
                 const to = stations.find(s => s.id === t.to_station);
@@ -2034,10 +2241,10 @@
             }).join('')}</select>
         `, async () => {
             const id = document.getElementById('transferSelect').value;
-            if (!confirm('确定删除该换乘关系吗？')) return;
+            if (!confirm(currentLang === 'zh' ? '确定删除该换乘关系吗？' : 'Delete this transfer?')) return;
             const { error } = await sb.from('transfers').delete().eq('id', id);
             if (error) alert(error.message);
-            else { alert('删除成功'); closeModal(); await loadData(); }
+            else { alert(currentLang === 'zh' ? '删除成功' : 'Deleted'); closeModal(); await loadData(); }
         });
     }
 
@@ -2068,8 +2275,8 @@
         document.getElementById('editStationBtn').onclick = editStation;
         document.getElementById('deleteStationBtn').onclick = deleteStation;
         document.getElementById('addLineBtn').onclick = addLine;
-        document.getElementById('editLineBtn').onclick = () => { if (lines.length) editLine(lines[0].id); else alert('暂无线路'); };
-        document.getElementById('deleteLineBtn').onclick = () => { if (lines.length) deleteLine(lines[0].id); else alert('暂无线路'); };
+        document.getElementById('editLineBtn').onclick = () => { if (lines.length) editLine(lines[0].id); else alert(currentLang === 'zh' ? '暂无线路' : 'No lines'); };
+        document.getElementById('deleteLineBtn').onclick = () => { if (lines.length) deleteLine(lines[0].id); else alert(currentLang === 'zh' ? '暂无线路' : 'No lines'); };
         document.getElementById('orderLineBtn').onclick = orderLine;
         document.getElementById('addOperatorBtn').onclick = addOperator;
         document.getElementById('editOperatorBtn').onclick = editOperator;
@@ -2080,17 +2287,6 @@
         document.getElementById('zoomInBtn').onclick = zoomIn;
         document.getElementById('zoomOutBtn').onclick = zoomOut;
         document.getElementById('resetViewBtn').onclick = resetView;
-
-        const gridCheck = document.getElementById('showGridCheckbox');
-        const axesCheck = document.getElementById('showAxesCheckbox');
-        gridCheck.addEventListener('change', (e) => {
-            showGrid = e.target.checked;
-            renderMap();
-        });
-        axesCheck.addEventListener('change', (e) => {
-            showAxes = e.target.checked;
-            renderMap();
-        });
     }
 
     async function init() {
@@ -2100,6 +2296,29 @@
         document.body.appendChild(tooltipDiv);
         await loadData();
         bindEvents();
+        const langSelect = document.getElementById('langSelect');
+        langSelect.addEventListener('change', (e) => {
+            currentLang = e.target.value;
+            applyLanguage();
+            renderMap();
+        });
+        applyLanguage();
+        const gridCheck = document.getElementById('showGridCheckbox');
+        const axesCheck = document.getElementById('showAxesCheckbox');
+        if (gridCheck) {
+            gridCheck.checked = showGrid;
+            gridCheck.onchange = (e) => {
+                showGrid = e.target.checked;
+                renderMap();
+            };
+        }
+        if (axesCheck) {
+            axesCheck.checked = showAxes;
+            axesCheck.onchange = (e) => {
+                showAxes = e.target.checked;
+                renderMap();
+            };
+        }
     }
     init();
 </script>
