@@ -83,6 +83,34 @@
             background: #1e3c72;
             color: white;
         }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .auth-btn {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .auth-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+        .user-email {
+            opacity: 0.8;
+        }
         .main { 
             display: flex;
              flex: 1; 
@@ -409,6 +437,23 @@
             background: #f0f0f0; 
             transform: scale(0.96);
         }
+
+        .login-banner {
+            background: #fff3cd;
+            border-radius: 12px;
+            padding: 8px 12px;
+            margin-bottom: 12px;
+            color: #856404;
+            font-size: 0.9rem;
+            border: 1px solid #ffeeba;
+            display: none;
+        }
+        .login-banner a {
+            color: #1e3c72;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -416,18 +461,26 @@
     <header>
         <h1>巧克力服铁路线路图 <br>
             Chocolate Server Rail Transit System Plan</h1>
-        <select id="langSelect" class="lang-select">
-            <option value="zh">Language 语言：中文</option>
-            <option value="en">语言 Language: English</option>
-        </select>
-        <div id="headerHint" style="font-size: 14px;">💡 所有人都可自由编辑，无需审核。<br>
-        ℹ️ 由于服务器铁路众多，我们希望你能够添加你所知道的铁路！<br>
-        ⚠️ 尚不完整支持手机端和过旧的浏览器！</div>
+        <div class="header-right">
+            <select id="langSelect" class="lang-select">
+                <option value="zh">Language 语言：中文</option>
+                <option value="en">语言 Language: English</option>
+            </select>
+            <div id="authSection">
+                <button id="loginBtn" class="auth-btn" data-i18n="loginBtn">登录 / 注册</button>
+                <span id="userDisplay" style="display:none;"></span>
+                <button id="logoutBtn" class="auth-btn" style="display:none;" data-i18n="logoutBtn">登出</button>
+            </div>
+        </div>
+            <div id="headerHint" style="font-size: 14px; width:100%;">💡 所有人都可在注册账号后自由编辑，无需审核。<br>
+            ℹ️ 由于服务器铁路众多，我们希望你能够添加你所知道的铁路！<br>
+            ⚠️ 尚不完整支持手机端和过旧的浏览器！<br>
+            ⚠️ 近期数据库出现性能下降的问题，详见：https://status.supabase.com/</div> 
     </header>
     <div class="main">
         <div class="map-panel">
             <div class="dimension-bar">
-                <span id="dimensionLabel">🌍 当前维度：</span>
+                <span id="dimensionLabel" data-i18n="dimensionLabel">🌍 当前维度：</span>
                 <select id="dimensionSelect">
                     <option value="主世界">主世界</option>
                     <option value="下界">下界</option>
@@ -435,72 +488,95 @@
                     <option value="资源世界">资源世界</option>
                     <option value="异次元之家">异次元之家</option>
                 </select>
-                <button id="refreshBtn">切换</button>
+                <button id="refreshBtn" data-i18n="switchDim">切换</button>
             </div>
             <div class="aux-controls">
-                <label id="gridLabel"><input type="checkbox" id="showGridCheckbox"> 显示坐标网格</label>
-                <label id="axesLabel"><input type="checkbox" id="showAxesCheckbox"> 显示坐标轴</label>
+                <label id="gridLabel"><input type="checkbox" id="showGridCheckbox"> <span data-i18n="showGrid">显示坐标网格</span></label>
+                <label id="axesLabel"><input type="checkbox" id="showAxesCheckbox"> <span data-i18n="showAxes">显示坐标轴</span></label>
                 <div class="coord-input">
-                    <span id="jumpLabel">跳转到：</span>
+                    <span id="jumpLabel" data-i18n="jumpTo">跳转到：</span>
                     <input type="number" id="jumpX" placeholder="X" value="0">
                     <input type="number" id="jumpZ" placeholder="Z" value="0">
-                    <button id="jumpBtn">跳转</button>
+                    <button id="jumpBtn" data-i18n="jumpBtn">跳转</button>
                 </div>
-                <div id="coordDisplay">点击地图显示坐标</div>
+                <div id="coordDisplay" data-i18n="clickCoord">点击地图显示坐标</div>
             </div>
             <div class="svg-container" id="svgWrapper">
                 <div style="position: absolute; top: 10px; right: 10px; z-index: 100; display: flex; gap: 8px; background: rgba(255,255,255,0.8); padding: 4px 8px; border-radius: 30px; backdrop-filter: blur(4px);">
                     <button id="zoomInBtn" style="font-size: 18px; font-weight: bold; width: 32px; height: 32px; padding: 0;">+</button>
                     <button id="zoomOutBtn" style="font-size: 18px; font-weight: bold; width: 32px; height: 32px; padding: 0;">-</button>
-                    <button id="resetViewBtn" style="font-size: 12px; padding: 0 8px;">重置</button>
+                    <button id="resetViewBtn" style="font-size: 12px; padding: 0 8px;" data-i18n="resetBtn">重置</button>
                 </div>
                 <svg id="subwayMap" width="100%" height="100%"></svg>
             </div>
             <div class="map-controls">
-                <span id="mapHint">💡 鼠标滚轮缩放 | 拖拽平移 | 悬停查看详情 | by woshiikun_1145 | 2.10.0</span>
+                <span id="mapHint" data-i18n="mapHint">💡 鼠标滚轮缩放 | 拖拽平移 | 悬停查看详情 | by woshiikun_1145 | 2.12.1</span>
             </div>
         </div>
         <div class="sidebar">
             <div class="plan-form">
-                <h3 id="routePlanTitle">🗺️ 路线规划</h3>
-                <input type="text" id="startStation" placeholder="起点站名" list="stationList">
-                <input type="text" id="endStation" placeholder="终点站名" list="stationList">
+                <h3 id="routePlanTitle" data-i18n="routePlanTitle">🗺️ 路线规划</h3>
+                <input type="text" id="startStation" data-i18n="startPlaceholder" placeholder="起点站名" list="stationList">
+                <input type="text" id="endStation" data-i18n="endPlaceholder" placeholder="终点站名" list="stationList">
                 <datalist id="stationList"></datalist>
-                <button id="planBtn">规划路线</button>
+                <button id="planBtn" data-i18n="planBtn">规划路线</button>
                 <div id="planResult" class="result"></div>
             </div>
 
             <div class="admin-form">
-                <h3 id="adminTitle">🔧 管理工具</h3>
-                <div id="stationMgmtTitle" class="section-title">📌 站点管理</div>
+                <div id="loginBanner" class="login-banner">
+                    🔒 <span id="loginBannerText" data-i18n="loginRequired">请登录以编辑数据。</span> <a id="loginBannerLink" data-i18n="loginNow">立即登录</a>
+                </div>
+                <h3 id="adminTitle" data-i18n="adminTitle">🔧 管理工具</h3>
+                <div id="stationMgmtTitle" class="section-title" data-i18n="stationMgmt">📌 站点管理</div>
                 <div id="stationListAdmin" class="item-list"></div>
                 <div style="margin-bottom:12px;">
-                    <button id="addStationBtn">➕ 添加站点</button>
-                    <button id="editStationBtn">✏️ 编辑站点</button>
-                    <button id="deleteStationBtn">🗑️ 删除站点</button>
+                    <button id="addStationBtn" data-i18n="addStation">➕ 添加站点</button>
+                    <button id="editStationBtn" data-i18n="editStation">✏️ 编辑站点</button>
+                    <button id="deleteStationBtn" data-i18n="deleteStation">🗑️ 删除站点</button>
                 </div>
-                <div id="lineMgmtTitle" class="section-title">🟢 线路管理</div>
+                <div id="lineMgmtTitle" class="section-title" data-i18n="lineMgmt">🟢 线路管理</div>
                 <div id="lineListAdmin" class="item-list"></div>
                 <div style="margin-bottom:12px;">
-                    <button id="addLineBtn">➕ 添加线路</button>
-                    <button id="editLineBtn">✏️ 编辑线路</button>
-                    <button id="deleteLineBtn">🗑️ 删除线路</button>
-                    <button id="orderLineBtn">↗️ 调整顺序</button>
+                    <button id="addLineBtn" data-i18n="addLine">➕ 添加线路</button>
+                    <button id="editLineBtn" data-i18n="editLine">✏️ 编辑线路</button>
+                    <button id="deleteLineBtn" data-i18n="deleteLine">🗑️ 删除线路</button>
+                    <button id="orderLineBtn" data-i18n="orderLine">↗️ 调整顺序</button>
                 </div>
-                <div id="operatorMgmtTitle" class="section-title">🏢 运营集团管理</div>
+                <div id="operatorMgmtTitle" class="section-title" data-i18n="operatorMgmt">🏢 运营集团管理</div>
                 <div id="operatorListAdmin" class="item-list"></div>
                 <div style="margin-bottom:12px;">
-                    <button id="addOperatorBtn">➕ 添加集团</button>
-                    <button id="editOperatorBtn">✏️ 编辑集团</button>
-                    <button id="deleteOperatorBtn">🗑️ 删除集团</button>
+                    <button id="addOperatorBtn" data-i18n="addOperator">➕ 添加集团</button>
+                    <button id="editOperatorBtn" data-i18n="editOperator">✏️ 编辑集团</button>
+                    <button id="deleteOperatorBtn" data-i18n="deleteOperator">🗑️ 删除集团</button>
                 </div>
-                <div id="transferMgmtTitle" class="section-title">🚶 站外换乘管理</div>
+                <div id="transferMgmtTitle" class="section-title" data-i18n="transferMgmt">🚶 站外换乘管理</div>
                 <div id="transferListAdmin" class="item-list"></div>
                 <div style="margin-bottom:12px;">
-                    <button id="addTransferBtn">➕ 添加换乘</button>
-                    <button id="deleteTransferBtn">🗑️ 删除换乘</button>
+                    <button id="addTransferBtn" data-i18n="addTransfer">➕ 添加换乘</button>
+                    <button id="deleteTransferBtn" data-i18n="deleteTransfer">🗑️ 删除换乘</button>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- 登录/注册模态框 -->
+<div id="authModal" class="modal">
+    <div class="modal-content">
+        <span class="close" id="authModalClose">&times;</span>
+        <h3 id="authModalTitle" data-i18n="authTitle">登录 / 注册</h3>
+        <div id="authModalBody">
+            <label data-i18n="emailLabel">邮箱</label><input type="email" id="authEmail" data-i18n="emailPlaceholder" placeholder="your@email.com">
+            <label data-i18n="passwordLabel">密码</label><input type="password" id="authPassword" data-i18n="passwordPlaceholder" placeholder="至少6位">
+            <div style="margin-top:12px;">
+                <button id="authLoginBtn" class="small-btn" style="background:#1e3c72;color:white;padding:6px 20px;" data-i18n="login">登录</button>
+                <button id="authRegisterBtn" class="small-btn" style="background:#ff9800;color:white;padding:6px 20px;" data-i18n="register">注册</button>
+            </div>
+            <div id="authError" style="color:red;margin-top:8px;"></div>
+        </div>
+        <div class="modal-footer">
+            <button id="authModalCancel" data-i18n="cancel">取消</button>
         </div>
     </div>
 </div>
@@ -510,8 +586,8 @@
         <span class="close">&times;</span>
         <div id="modalBody"></div>
         <div class="modal-footer">
-            <button id="modalConfirm">确认</button>
-            <button id="modalCancel">取消</button>
+            <button id="modalConfirm" data-i18n="confirm">确认</button>
+            <button id="modalCancel" data-i18n="cancel">取消</button>
         </div>
     </div>
 </div>
@@ -537,6 +613,118 @@
     let showGrid = false;
     let showAxes = false;
 
+    // ========== 认证状态 ==========
+    let currentUser = null;
+
+    async function checkAuth() {
+        const { data: { session }, error } = await sb.auth.getSession();
+        if (session) {
+            currentUser = session.user;
+        } else {
+            currentUser = null;
+        }
+        updateAuthUI();
+        return currentUser;
+    }
+
+    function updateAuthUI() {
+        const loginBtn = document.getElementById('loginBtn');
+        const userDisplay = document.getElementById('userDisplay');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const banner = document.getElementById('loginBanner');
+        const bannerText = document.getElementById('loginBannerText');
+
+        if (currentUser) {
+            loginBtn.style.display = 'none';
+            userDisplay.style.display = 'inline';
+            userDisplay.innerHTML = `👤 ${currentUser.email}`;
+            logoutBtn.style.display = 'inline';
+            banner.style.display = 'none';
+        } else {
+            loginBtn.style.display = 'inline';
+            userDisplay.style.display = 'none';
+            logoutBtn.style.display = 'none';
+            banner.style.display = 'block';
+            // 文字会在 applyLanguage 中更新
+        }
+    }
+
+    function showAuthModal() {
+        const modal = document.getElementById('authModal');
+        const errorDiv = document.getElementById('authError');
+        errorDiv.innerText = '';
+        modal.style.display = 'flex';
+        // 语言相关文本已在 applyLanguage 中更新
+    }
+
+    function closeAuthModal() {
+        document.getElementById('authModal').style.display = 'none';
+    }
+
+    async function handleLogin() {
+        const email = document.getElementById('authEmail').value;
+        const password = document.getElementById('authPassword').value;
+        const errorDiv = document.getElementById('authError');
+        errorDiv.innerText = '';
+        if (!email || !password) {
+            errorDiv.innerText = currentLang === 'zh' ? '请填写邮箱和密码' : 'Please fill email and password';
+            return;
+        }
+        const { data, error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) {
+            errorDiv.innerText = error.message;
+            return;
+        }
+        if (data.user) {
+            currentUser = data.user;
+            updateAuthUI();
+            closeAuthModal();
+            await loadData();
+        }
+    }
+
+    async function handleRegister() {
+        const email = document.getElementById('authEmail').value;
+        const password = document.getElementById('authPassword').value;
+        const errorDiv = document.getElementById('authError');
+        errorDiv.innerText = '';
+        if (!email || !password) {
+            errorDiv.innerText = currentLang === 'zh' ? '请填写邮箱和密码' : 'Please fill email and password';
+            return;
+        }
+        if (password.length < 6) {
+            errorDiv.innerText = currentLang === 'zh' ? '密码至少6位' : 'Password must be at least 6 characters';
+            return;
+        }
+        const { data, error } = await sb.auth.signUp({ email, password });
+        if (error) {
+            errorDiv.innerText = error.message;
+            return;
+        }
+        if (data.user) {
+            alert(currentLang === 'zh' ? '注册成功，请登录' : 'Registered successfully, please login');
+            await handleLogin();
+        }
+    }
+
+    async function handleLogout() {
+        await sb.auth.signOut();
+        currentUser = null;
+        updateAuthUI();
+        await loadData();
+    }
+
+    function requireAuth() {
+        if (!currentUser) {
+            alert(currentLang === 'zh' ? '请先登录再执行此操作' : 'Please login first');
+            showAuthModal();
+            return false;
+        }
+        return true;
+    }
+
+    // ========== 结束认证 ==========
+
     const DIMENSIONS = ['主世界', '下界', '末地', '资源世界', '异次元之家'];
     const CROSS_DIMENSION_ALLOWED = (from, to) => {
         if (from === to) return false;
@@ -545,7 +733,6 @@
         return true;
     };
 
-    // 维度翻译
     function translateDimension(dim, lang) {
         if (lang !== 'en') return dim;
         const map = {
@@ -558,7 +745,6 @@
         return map[dim] || dim;
     }
 
-    // 线路类型翻译
     function translateLineType(type, lang) {
         if (lang !== 'en') return type;
         const map = {
@@ -570,19 +756,16 @@
         return map[type] || type;
     }
 
-    // 获取站点的显示名称（根据语言）
     function getStationDisplayName(station) {
         if (currentLang === 'en' && station.english_name) return station.english_name;
         return station.name;
     }
 
-    // 获取线路的显示名称
     function getLineDisplayName(line) {
         if (currentLang === 'en' && line.english_name) return line.english_name;
         return line.name;
     }
 
-    // 获取运营商的显示名称
     function getOperatorDisplayName(op) {
         if (currentLang === 'en' && op.english_name) return op.english_name;
         return op.name;
@@ -631,7 +814,7 @@
             switchDim: "切换",
             clickCoord: "点击地图显示坐标",
             zoomHint: "鼠标滚轮缩放 | 拖拽平移 | 悬停查看详情",
-            headerHint: "💡 所有人都可自由编辑，无需审核。<br>ℹ️ 由于服务器铁路众多，我们希望你能够添加你所知道的铁路！<br>⚠️ 尚不完整支持手机端和过旧的浏览器！",
+            headerHint: "💡 所有人都可自由编辑，无需审核。<br>ℹ️ 由于服务器铁路众多，我们希望你能够添加你所知道的铁路！<br>⚠️ 尚不完整支持手机端和过旧的浏览器！<br>⚠️ 近期数据库出现性能下降的问题，详见：https://status.supabase.com/ ",
             dimensionLabel: "维度:",
             operatorLabel: "运营集团:",
             stationsLabel: "站点:",
@@ -641,7 +824,21 @@
             passingLinesLabel: "途经线路",
             englishGuide: "英文引导",
             hasGuide: "支持英文引导",
-            noGuide: "无英文引导"
+            noGuide: "无英文引导",
+            loginRequired: "请登录以编辑数据。",
+            loginNow: "立即登录",
+            authTitle: "登录 / 注册",
+            login: "登录",
+            register: "注册",
+            emailLabel: "邮箱",
+            passwordLabel: "密码",
+            emailPlaceholder: "your@email.com",
+            passwordPlaceholder: "至少6位",
+            loginBtn: "登录 / 注册",
+            logoutBtn: "登出",
+            resetBtn: "重置",
+            mapHint: "💡 鼠标滚轮缩放 | 拖拽平移 | 悬停查看详情 | by woshiikun_1145 | 2.12.1",
+            jumpBtn: "跳转"
         },
         en: {
             routePlanTitle: "🗺️ Route Planner",
@@ -685,7 +882,7 @@
             switchDim: "Switch",
             clickCoord: "Click map to show coordinates",
             zoomHint: "Scroll to zoom | Drag to pan | Hover for details",
-            headerHint: "💡 Everyone can edit freely, no approval needed.<br>ℹ️ Since there are many railways, we hope you can add what you know!<br>⚠️ Mobile and old browsers are not fully supported.",
+            headerHint: "💡 Everyone can edit freely, no approval needed.<br>ℹ️ Since there are many railways, we hope you can add what you know!<br>⚠️ Mobile and old browsers are not fully supported.<br>⚠️ Recent database performance issues, see: https://status.supabase.com/",
             dimensionLabel: "Dimension:",
             operatorLabel: "Operator:",
             stationsLabel: "Stations:",
@@ -695,7 +892,21 @@
             coordLabel: "Coordinates",
             passingLinesLabel: "Passing lines",
             hasGuide: "English guide available",
-            noGuide: "No English guide"
+            noGuide: "No English guide",
+            loginRequired: "Please login to edit data.",
+            loginNow: "Login now",
+            authTitle: "Login / Register",
+            login: "Login",
+            register: "Register",
+            emailLabel: "Email",
+            passwordLabel: "Password",
+            emailPlaceholder: "your@email.com",
+            passwordPlaceholder: "At least 6 characters",
+            loginBtn: "Login / Register",
+            logoutBtn: "Logout",
+            resetBtn: "Reset",
+            mapHint: "💡 Scroll to zoom | Drag to pan | Hover for details | by woshiikun_1145 | 2.12.1",
+            jumpBtn: "Jump"
         }
     };
 
@@ -1044,7 +1255,6 @@
             });
         });
 
-        // 绘制站点，悬停提示使用多语言
         stations.filter(s => s.dimension === currentDimension).forEach(station => {
             const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             circle.setAttribute('cx', station.x);
@@ -1239,6 +1449,7 @@
 
     function updateViewBox() { svg.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`); }
 
+    // 路线规划（无需登录）
     async function planRoute() {
         const startName = document.getElementById('startStation').value.trim();
         const endName = document.getElementById('endStation').value.trim();
@@ -1446,6 +1657,7 @@
         document.getElementById('planResult').innerHTML = html;
     }
 
+    // 渲染管理列表（只读，但带有编辑/删除按钮，点击时会检查权限）
     async function renderAdminLists() {
         const t = i18n[currentLang];
         // 站点列表
@@ -1453,12 +1665,11 @@
         stationDiv.innerHTML = '';
         stations.forEach(s => {
             const dimDisplay = translateDimension(s.dimension, currentLang);
-            const guideIcon = s.has_english_guide ? '' : '';
             const guideText = s.has_english_guide ? t.hasGuide : t.noGuide;
             const enNameInfo = s.english_name ? ` (EN: ${s.english_name})` : '';
             const div = document.createElement('div');
             div.className = 'station-item';
-            div.innerHTML = `<div><strong>${s.name}${enNameInfo}</strong> (${s.x}, ${s.z})<br><small>${t.dimensionLabel} ${dimDisplay} | ID: ${s.id} | ${guideIcon} ${guideText}</small></div>
+            div.innerHTML = `<div><strong>${s.name}${enNameInfo}</strong> (${s.x}, ${s.z})<br><small>${t.dimensionLabel} ${dimDisplay} | ID: ${s.id} | ${guideText}</small></div>
                             <span><button class="small-btn editStationBtn" data-id="${s.id}">${t.editStation}</button>
                             <button class="small-btn danger delStationBtn" data-id="${s.id}">${t.deleteStation}</button></span>`;
             stationDiv.appendChild(div);
@@ -1514,91 +1725,91 @@
                 transferDiv.appendChild(div);
             }
         });
-        // 绑定事件
+
+        // 绑定事件（所有管理操作均先 requireAuth）
         document.querySelectorAll('.editStationBtn').forEach(btn => {
-            btn.onclick = () => editStation(parseInt(btn.dataset.id));
+            btn.onclick = () => { if (requireAuth()) editStation(parseInt(btn.dataset.id)); };
         });
         document.querySelectorAll('.delStationBtn').forEach(btn => {
-            btn.onclick = () => deleteStation(parseInt(btn.dataset.id));
+            btn.onclick = () => { if (requireAuth()) deleteStation(parseInt(btn.dataset.id)); };
         });
         document.querySelectorAll('.editLineBtn').forEach(btn => {
-            btn.onclick = () => editLine(parseInt(btn.dataset.id));
+            btn.onclick = () => { if (requireAuth()) editLine(parseInt(btn.dataset.id)); };
         });
         document.querySelectorAll('.delLineBtn').forEach(btn => {
-            btn.onclick = () => deleteLine(parseInt(btn.dataset.id));
+            btn.onclick = () => { if (requireAuth()) deleteLine(parseInt(btn.dataset.id)); };
         });
         document.querySelectorAll('.editOperatorBtn').forEach(btn => {
-            btn.onclick = () => editOperator(parseInt(btn.dataset.id));
+            btn.onclick = () => { if (requireAuth()) editOperator(parseInt(btn.dataset.id)); };
         });
         document.querySelectorAll('.delOperatorBtn').forEach(btn => {
-            btn.onclick = () => deleteOperator(parseInt(btn.dataset.id));
+            btn.onclick = () => { if (requireAuth()) deleteOperator(parseInt(btn.dataset.id)); };
         });
         document.querySelectorAll('.delTransferBtn').forEach(btn => {
-            btn.onclick = () => deleteTransfer(parseInt(btn.dataset.id));
+            btn.onclick = () => { if (requireAuth()) deleteTransfer(parseInt(btn.dataset.id)); };
         });
     }
 
+    // 应用语言设置
     function applyLanguage() {
         const t = i18n[currentLang];
-        document.getElementById('routePlanTitle').innerHTML = t.routePlanTitle;
-        document.getElementById('startStation').placeholder = t.startPlaceholder;
-        document.getElementById('endStation').placeholder = t.endPlaceholder;
-        document.getElementById('planBtn').innerText = t.planBtn;
-        document.getElementById('adminTitle').innerHTML = t.adminTitle;
-        document.getElementById('stationMgmtTitle').innerHTML = t.stationMgmt;
-        document.getElementById('lineMgmtTitle').innerHTML = t.lineMgmt;
-        document.getElementById('operatorMgmtTitle').innerHTML = t.operatorMgmt;
-        document.getElementById('transferMgmtTitle').innerHTML = t.transferMgmt;
-        document.getElementById('addStationBtn').innerHTML = t.addStation;
-        document.getElementById('editStationBtn').innerHTML = t.editStation;
-        document.getElementById('deleteStationBtn').innerHTML = t.deleteStation;
-        document.getElementById('addLineBtn').innerHTML = t.addLine;
-        document.getElementById('editLineBtn').innerHTML = t.editLine;
-        document.getElementById('deleteLineBtn').innerHTML = t.deleteLine;
-        document.getElementById('orderLineBtn').innerHTML = t.orderLine;
-        document.getElementById('addOperatorBtn').innerHTML = t.addOperator;
-        document.getElementById('editOperatorBtn').innerHTML = t.editOperator;
-        document.getElementById('deleteOperatorBtn').innerHTML = t.deleteOperator;
-        document.getElementById('addTransferBtn').innerHTML = t.addTransfer;
-        document.getElementById('deleteTransferBtn').innerHTML = t.deleteTransfer;
-        document.getElementById('modalConfirm').innerText = t.confirm;
-        document.getElementById('modalCancel').innerText = t.cancel;
-        document.getElementById('dimensionLabel').innerHTML = `🌍 ${t.dimension}：`;
-        document.getElementById('refreshBtn').innerText = t.switchDim;
-        document.getElementById('jumpLabel').innerText = t.jumpTo;
-        document.getElementById('coordDisplay').innerText = t.clickCoord;
-        document.getElementById('mapHint').innerHTML = `💡 ${t.zoomHint} | by woshiikun_1145 | 2.10.0`;
+        // 使用 data-i18n 批量更新
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (key && t[key] !== undefined) {
+                if (el.tagName === 'INPUT' && el.placeholder !== undefined) {
+                    el.placeholder = t[key];
+                } else if (el.tagName === 'BUTTON' && el.type !== 'button' && el.id !== 'authLoginBtn' && el.id !== 'authRegisterBtn') {
+                    // 特殊处理登录/注册按钮，它们有独立的处理
+                    // 但大多数按钮可以
+                    el.innerText = t[key];
+                } else {
+                    el.innerText = t[key];
+                }
+            }
+        });
+        // 特殊处理需要保留 HTML 的
         document.getElementById('headerHint').innerHTML = t.headerHint;
-        
-        // 更新复选框标签
-        const gridLabel = document.getElementById('gridLabel');
-        const axesLabel = document.getElementById('axesLabel');
-        if (gridLabel && gridLabel.firstChild && gridLabel.firstChild.nodeType === Node.ELEMENT_NODE && gridLabel.firstChild.tagName === 'INPUT') {
-            const inputNode = gridLabel.firstChild;
-            gridLabel.innerHTML = '';
-            gridLabel.appendChild(inputNode);
-            gridLabel.appendChild(document.createTextNode(` ${t.showGrid}`));
-        } else {
-            gridLabel.innerHTML = `<input type="checkbox" id="showGridCheckbox"> ${t.showGrid}`;
-        }
-        if (axesLabel && axesLabel.firstChild && axesLabel.firstChild.nodeType === Node.ELEMENT_NODE && axesLabel.firstChild.tagName === 'INPUT') {
-            const inputNode = axesLabel.firstChild;
-            axesLabel.innerHTML = '';
-            axesLabel.appendChild(inputNode);
-            axesLabel.appendChild(document.createTextNode(` ${t.showAxes}`));
-        } else {
-            axesLabel.innerHTML = `<input type="checkbox" id="showAxesCheckbox"> ${t.showAxes}`;
-        }
-        
-        // 更新维度下拉框选项文本
+        document.getElementById('mapHint').innerHTML = `💡 ${t.zoomHint} | by woshiikun_1145 | 2.12.1`;
+
+        // 登录模态框内部元素（data-i18n 已经设置）
+        // 但需要更新 placeholder 等
+        const authEmail = document.getElementById('authEmail');
+        const authPassword = document.getElementById('authPassword');
+        if (authEmail) authEmail.placeholder = t.emailPlaceholder;
+        if (authPassword) authPassword.placeholder = t.passwordPlaceholder;
+        // 模态框按钮文本
+        document.querySelector('#authLoginBtn').innerText = t.login;
+        document.querySelector('#authRegisterBtn').innerText = t.register;
+        document.querySelector('#authModalCancel').innerText = t.cancel;
+        document.getElementById('authModalTitle').innerText = t.authTitle;
+
+        // 维度下拉框
         const dimSelect = document.getElementById('dimensionSelect');
         for (let i = 0; i < dimSelect.options.length; i++) {
             const opt = dimSelect.options[i];
             const originalValue = opt.value;
             opt.textContent = translateDimension(originalValue, currentLang);
         }
-        
-        // 重新绑定checkbox事件
+
+        // 复选框标签
+        const gridLabel = document.getElementById('gridLabel');
+        const axesLabel = document.getElementById('axesLabel');
+        // 简单处理：保留 checkbox，更新文本
+        if (gridLabel) {
+            const cb = gridLabel.querySelector('input[type="checkbox"]');
+            gridLabel.innerHTML = '';
+            gridLabel.appendChild(cb);
+            gridLabel.appendChild(document.createTextNode(` ${t.showGrid}`));
+        }
+        if (axesLabel) {
+            const cb = axesLabel.querySelector('input[type="checkbox"]');
+            axesLabel.innerHTML = '';
+            axesLabel.appendChild(cb);
+            axesLabel.appendChild(document.createTextNode(` ${t.showAxes}`));
+        }
+
+        // 重新绑定 checkbox 事件（避免丢失）
         const gridCheck = document.getElementById('showGridCheckbox');
         const axesCheck = document.getElementById('showAxesCheckbox');
         if (gridCheck) {
@@ -1615,13 +1826,15 @@
                 renderMap();
             };
         }
-        
+
+        updateAuthUI(); // 更新登录状态显示（文字已由 data-i18n 处理）
         renderAdminLists();
-        renderMap(); // 刷新地图上的文字（站点名等）
+        renderMap();
     }
 
-    // 添加/编辑站点
+    // ---- 管理操作（需登录） ----
     async function addStation() {
+        if (!requireAuth()) return;
         const dimOptions = DIMENSIONS.map(d => `<option value="${d}">${translateDimension(d, currentLang)}</option>`).join('');
         showModal(i18n[currentLang].addStation, `
             <label>${currentLang === 'zh' ? '站名' : 'Station Name'}</label><input id="staName">
@@ -1646,6 +1859,7 @@
     }
 
     async function editStation(stationId) {
+        if (!requireAuth()) return;
         const station = stations.find(s => s.id === stationId);
         if (!station) return;
         const dimOptions = DIMENSIONS.map(d => `<option value="${d}" ${station.dimension === d ? 'selected' : ''}>${translateDimension(d, currentLang)}</option>`).join('');
@@ -1672,6 +1886,7 @@
     }
 
     async function deleteStation(stationId) {
+        if (!requireAuth()) return;
         if (!confirm(currentLang === 'zh' ? '删除站点将从所有线路中移除，确定吗？' : 'Delete station? It will be removed from all lines.')) return;
         for (const line of lines) {
             if (line.station_order.includes(stationId)) {
@@ -1685,8 +1900,8 @@
         else { alert(currentLang === 'zh' ? '删除成功' : 'Deleted'); await loadData(); }
     }
 
-    // 添加/编辑线路
     async function addLine() {
+        if (!requireAuth()) return;
         const lineTypes = ['单轨铁路', '双轨铁路', '蓝冰船', '长距铁路'];
         const safeStations = Array.isArray(stations) ? stations : [];
         const safeOperators = Array.isArray(operators) ? operators : [];
@@ -1863,6 +2078,7 @@
     }
 
     async function editLine(lineId) {
+        if (!requireAuth()) return;
         const line = lines.find(l => l.id === lineId);
         if (!line) return;
         const lineTypes = ['单轨铁路', '双轨铁路', '蓝冰船', '长距铁路'];
@@ -1921,7 +2137,7 @@
             if (error) alert(error.message);
             else { alert(currentLang === 'zh' ? '编辑成功' : 'Edited'); closeModal(); await loadData(); }
         });
-        // 编辑线路的站点排序等逻辑
+        // 编辑线路的站点排序等逻辑（与之前相同，略去重复代码，实际已包含）
         setTimeout(() => {
             const stationSelect = document.getElementById('stationOrderSelect');
             for (let opt of stationSelect.options) opt.selected = false;
@@ -2059,6 +2275,7 @@
     }
 
     async function deleteLine(lineId) {
+        if (!requireAuth()) return;
         if (!confirm(currentLang === 'zh' ? '确定删除该线路吗？' : 'Delete this line?')) return;
         const { error } = await sb.from('lines').delete().eq('id', lineId);
         if (error) alert(error.message);
@@ -2066,6 +2283,7 @@
     }
 
     async function orderLine() {
+        if (!requireAuth()) return;
         if (!lines.length) { alert(currentLang === 'zh' ? '暂无线路' : 'No lines'); return; }
         showModal(i18n[currentLang].orderLine, `
             <label>${currentLang === 'zh' ? '选择线路' : 'Select Line'}</label>
@@ -2122,8 +2340,8 @@
         lineSelect.dispatchEvent(new Event('change'));
     }
 
-
     async function addOperator() {
+        if (!requireAuth()) return;
         showModal(i18n[currentLang].addOperator, `
             <label>${currentLang === 'zh' ? '集团名称' : 'Operator Name'}</label><input id="opName">
             <label>${currentLang === 'zh' ? '英文名' : 'English Name'}</label><input id="opEnName" placeholder="可选">
@@ -2141,6 +2359,7 @@
     }
 
     async function editOperator(opId) {
+        if (!requireAuth()) return;
         const op = operators.find(o => o.id === opId);
         if (!op) return;
         showModal(i18n[currentLang].editOperator, `
@@ -2153,7 +2372,6 @@
             const newEnName = document.getElementById('opEnName').value.trim() || null;
             const newIcon = document.getElementById('opIcon').value.trim();
             if (!newName) { alert(currentLang === 'zh' ? '请填写名称' : 'Please enter name'); return; }
-            // 如果名称改变了，需要同步更新线路中的 operator 字段
             if (newName !== op.name) {
                 await sb.from('lines').update({ operator: newName }).eq('operator', op.name);
             }
@@ -2164,6 +2382,7 @@
     }
 
     async function deleteOperator(opId) {
+        if (!requireAuth()) return;
         const op = operators.find(o => o.id === opId);
         if (!op) return;
         const used = lines.some(l => l.operator === op.name);
@@ -2175,6 +2394,7 @@
     }
 
     async function addTransfer() {
+        if (!requireAuth()) return;
         const stationOptions = stations.map(s => `<option value="${s.id}">${getStationDisplayName(s)} (${translateDimension(s.dimension, currentLang)})</option>`).join('');
         showModal(i18n[currentLang].addTransfer, `
             <label>${currentLang === 'zh' ? '起点站点' : 'From Station'}</label>
@@ -2212,13 +2432,14 @@
     }
 
     async function deleteTransfer(transferId) {
+        if (!requireAuth()) return;
         if (!confirm(currentLang === 'zh' ? '确定删除该换乘关系吗？' : 'Delete this transfer?')) return;
         const { error } = await sb.from('transfers').delete().eq('id', transferId);
         if (error) alert(error.message);
         else { alert(currentLang === 'zh' ? '删除成功' : 'Deleted'); await loadData(); }
     }
 
-    // 辅助函数（折点编辑器等）需要保留
+    // 辅助函数（折点编辑器等）
     function renderBreakpointsEditor(selectedStationIds, existingBreakpoints) {
         const segments = [];
         for (let i = 0; i < selectedStationIds.length - 1; i++) {
@@ -2335,95 +2556,32 @@
         document.getElementById('zoomInBtn').onclick = zoomIn;
         document.getElementById('zoomOutBtn').onclick = zoomOut;
         document.getElementById('resetViewBtn').onclick = resetView;
-    }
-
-    async function orderLine() {
-        if (!lines.length) { alert(currentLang === 'zh' ? '暂无线路' : 'No lines'); return; }
-        showModal(i18n[currentLang].orderLine, `
-            <label>${currentLang === 'zh' ? '选择线路' : 'Select Line'}</label>
-            <select id="lineSelect">${lines.map(l => `<option value="${l.id}">${l.name}</option>`).join('')}</select>
-            <div id="orderContainer"></div>
-        `, null, true);
-        const lineSelect = document.getElementById('lineSelect');
-        const orderContainer = document.getElementById('orderContainer');
-        let currentOrder = [];
-        function renderOrder(stationIds) {
-            const stationsInOrder = stationIds.map(id => stations.find(s => s.id === id)).filter(s => s);
-            orderContainer.innerHTML = `
-                <div style="margin:10px 0;">
-                    ${stationsInOrder.map((s, idx) => `
-                        <div style="display:flex; justify-content:space-between; margin:6px 0; padding:6px; background:#f5f5f5; border-radius:8px;">
-                            <span><strong>${idx+1}.</strong> ${s.name}</span>
-                            <div>
-                                <button class="small-btn upBtn" data-idx="${idx}" ${idx===0 ? 'disabled' : ''}>▲</button>
-                                <button class="small-btn downBtn" data-idx="${idx}" ${idx===stationIds.length-1 ? 'disabled' : ''}>▼</button>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-                <button id="saveOrderBtn" class="small-btn">${currentLang === 'zh' ? '保存顺序' : 'Save Order'}</button>
-            `;
-            document.querySelectorAll('.upBtn').forEach(btn => {
-                btn.onclick = () => {
-                    const idx = parseInt(btn.dataset.idx);
-                    if (idx > 0) {
-                        [stationIds[idx-1], stationIds[idx]] = [stationIds[idx], stationIds[idx-1]];
-                        renderOrder(stationIds);
-                    }
-                };
-            });
-            document.querySelectorAll('.downBtn').forEach(btn => {
-                btn.onclick = () => {
-                    const idx = parseInt(btn.dataset.idx);
-                    if (idx < stationIds.length-1) {
-                        [stationIds[idx], stationIds[idx+1]] = [stationIds[idx+1], stationIds[idx]];
-                        renderOrder(stationIds);
-                    }
-                };
-            });
-            document.getElementById('saveOrderBtn').onclick = async () => {
-                const { error } = await sb.from('lines').update({ station_order: stationIds }).eq('id', lineSelect.value);
-                if (error) alert(error.message);
-                else { alert(currentLang === 'zh' ? '顺序已更新' : 'Order updated'); closeModal(); await loadData(); }
-            };
-        }
-        lineSelect.onchange = () => {
-            const line = lines.find(l => l.id == lineSelect.value);
-            if (line) { currentOrder = [...line.station_order]; renderOrder(currentOrder); }
+        // 认证按钮
+        document.getElementById('loginBtn').onclick = showAuthModal;
+        document.getElementById('logoutBtn').onclick = handleLogout;
+        document.getElementById('authModalClose').onclick = closeAuthModal;
+        document.getElementById('authModalCancel').onclick = closeAuthModal;
+        document.getElementById('authLoginBtn').onclick = handleLogin;
+        document.getElementById('authRegisterBtn').onclick = handleRegister;
+        document.getElementById('loginBannerLink').onclick = showAuthModal;
+        // 语言切换
+        document.getElementById('langSelect').onchange = (e) => {
+            currentLang = e.target.value;
+            applyLanguage();
+            renderMap();
         };
-        lineSelect.dispatchEvent(new Event('change'));
     }
 
     async function init() {
+        await checkAuth();
         initPanZoom();
         tooltipDiv = document.createElement('div');
         tooltipDiv.className = 'tooltip';
         document.body.appendChild(tooltipDiv);
         await loadData();
         bindEvents();
-        const langSelect = document.getElementById('langSelect');
-        langSelect.addEventListener('change', (e) => {
-            currentLang = e.target.value;
-            applyLanguage();
-            renderMap();
-        });
         applyLanguage();
-        const gridCheck = document.getElementById('showGridCheckbox');
-        const axesCheck = document.getElementById('showAxesCheckbox');
-        if (gridCheck) {
-            gridCheck.checked = showGrid;
-            gridCheck.onchange = (e) => {
-                showGrid = e.target.checked;
-                renderMap();
-            };
-        }
-        if (axesCheck) {
-            axesCheck.checked = showAxes;
-            axesCheck.onchange = (e) => {
-                showAxes = e.target.checked;
-                renderMap();
-            };
-        }
+        updateAuthUI();
     }
     init();
 </script>
