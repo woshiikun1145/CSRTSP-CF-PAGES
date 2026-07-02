@@ -510,7 +510,7 @@
                 <svg id="subwayMap" width="100%" height="100%"></svg>
             </div>
             <div class="map-controls">
-                <span id="mapHint" data-i18n="mapHint">💡 鼠标滚轮缩放 | 拖拽平移 | 悬停查看详情 | by woshiikun_1145 | 2.12.1</span>
+                <span id="mapHint" data-i18n="mapHint">💡 鼠标滚轮缩放 | 拖拽平移 | 悬停查看详情 | by woshiikun_1145 | 2.12.2</span>
             </div>
         </div>
         <div class="sidebar">
@@ -814,7 +814,7 @@
             switchDim: "切换",
             clickCoord: "点击地图显示坐标",
             zoomHint: "鼠标滚轮缩放 | 拖拽平移 | 悬停查看详情",
-            headerHint: "💡 所有人都可自由编辑，无需审核。<br>ℹ️ 由于服务器铁路众多，我们希望你能够添加你所知道的铁路！<br>⚠️ 尚不完整支持手机端和过旧的浏览器！<br>⚠️ 近期数据库出现性能下降的问题，详见：https://status.supabase.com/ ",
+            headerHint: "💡 所有人都可在注册账号后自由编辑，无需审核。<br>ℹ️ 由于服务器铁路众多，我们希望你能够添加你所知道的铁路！<br>⚠️ 尚不完整支持手机端和过旧的浏览器！<br>⚠️ 近期数据库出现性能下降的问题，详见：https://status.supabase.com/ ",
             dimensionLabel: "维度:",
             operatorLabel: "运营集团:",
             stationsLabel: "站点:",
@@ -837,7 +837,7 @@
             loginBtn: "登录 / 注册",
             logoutBtn: "登出",
             resetBtn: "重置",
-            mapHint: "💡 鼠标滚轮缩放 | 拖拽平移 | 悬停查看详情 | by woshiikun_1145 | 2.12.1",
+            mapHint: "💡 鼠标滚轮缩放 | 拖拽平移 | 悬停查看详情 | by woshiikun_1145 | 2.12.2",
             jumpBtn: "跳转"
         },
         en: {
@@ -882,7 +882,7 @@
             switchDim: "Switch",
             clickCoord: "Click map to show coordinates",
             zoomHint: "Scroll to zoom | Drag to pan | Hover for details",
-            headerHint: "💡 Everyone can edit freely, no approval needed.<br>ℹ️ Since there are many railways, we hope you can add what you know!<br>⚠️ Mobile and old browsers are not fully supported.<br>⚠️ Recent database performance issues, see: https://status.supabase.com/",
+            headerHint: "💡 Everyone can freely edit after registering an account, without needing approval.<br>ℹ️ Since there are many railways, we hope you can add what you know!<br>⚠️ Mobile and old browsers are not fully supported.<br>⚠️ Recent database performance issues, see: https://status.supabase.com/",
             dimensionLabel: "Dimension:",
             operatorLabel: "Operator:",
             stationsLabel: "Stations:",
@@ -905,7 +905,7 @@
             loginBtn: "Login / Register",
             logoutBtn: "Logout",
             resetBtn: "Reset",
-            mapHint: "💡 Scroll to zoom | Drag to pan | Hover for details | by woshiikun_1145 | 2.12.1",
+            mapHint: "💡 Scroll to zoom | Drag to pan | Hover for details | by woshiikun_1145 | 2.12.2",
             jumpBtn: "Jump"
         }
     };
@@ -1770,7 +1770,7 @@
         });
         // 特殊处理需要保留 HTML 的
         document.getElementById('headerHint').innerHTML = t.headerHint;
-        document.getElementById('mapHint').innerHTML = `💡 ${t.zoomHint} | by woshiikun_1145 | 2.12.1`;
+        document.getElementById('mapHint').innerHTML = `💡 ${t.zoomHint} | by woshiikun_1145 | 2.12.2`;
 
         // 登录模态框内部元素（data-i18n 已经设置）
         // 但需要更新 placeholder 等
